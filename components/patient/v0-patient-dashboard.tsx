@@ -45,6 +45,7 @@ import { NotificationCenter } from "@/components/notifications/notification-cent
 import { RealtimeAppointmentRequests } from "@/components/realtime-appointment-requests"
 import { RealtimePatientAppointments } from "@/components/patient/realtime-patient-appointments"
 import { PatientFilesViewer } from "@/components/patient-files-viewer"
+import { EnhancedAppointmentBooking } from "@/components/patient/enhanced-appointment-booking"
 import {
   sendMessage,
   requestUrgentAssistance,
@@ -98,6 +99,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   const [selectedAppointment, setSelectedAppointment] = useState<string | null>(null)
   const [showViewNotes, setShowViewNotes] = useState(false)
   const [selectedNotes, setSelectedNotes] = useState<any>(null)
+  const [showBookingForm, setShowBookingForm] = useState(false)
   const [rescheduleForm, setRescheduleForm] = useState({
     preferredDate: "",
     preferredTime: "",
@@ -277,7 +279,16 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         )}
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="bg-white border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => setShowBookingForm(true)}
+          >
+            <CardContent className="p-6 text-center">
+              <Calendar className="w-8 h-8 mx-auto mb-2 text-teal-600" />
+              <p className="text-sm font-medium text-gray-700">Book Appointment</p>
+            </CardContent>
+          </Card>
           <Card
             className="bg-white border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
             onClick={() => setActiveTab("file")}
@@ -452,6 +463,19 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   const renderAppointmentsTab = () => {
     return (
       <div className="space-y-4 pb-20">
+        {/* Book New Appointment Button */}
+        <Card className="bg-white border border-gray-100 shadow-sm">
+          <CardContent className="p-4">
+            <Button
+              onClick={() => setShowBookingForm(true)}
+              className="w-full bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-2 py-3"
+            >
+              <Calendar className="w-5 h-5" />
+              Book New Appointment
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Real-time Appointments with Live Updates */}
         <RealtimePatientAppointments
           patientId={currentUserId || ''}
@@ -701,9 +725,11 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
-            </div>
+            <img
+              src="/endoflow-logo.png"
+              alt="Endoflow"
+              className="w-8 h-8 object-contain"
+            />
             <h1 className="text-lg font-semibold text-gray-900">ENDOFLOW</h1>
           </div>
 
@@ -787,6 +813,20 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       </nav>
 
       {/* Enhanced Booking Form Modal */}
+      {showBookingForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <EnhancedAppointmentBooking
+              onClose={() => setShowBookingForm(false)}
+              onSuccess={() => {
+                setShowBookingForm(false)
+                // Reload appointment data
+                loadPatientData()
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Reschedule Form Modal */}
       {showRescheduleForm && (

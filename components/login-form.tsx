@@ -27,10 +27,12 @@ export function LoginForm({ onLogin, isLoading = false, error, onForgotPassword 
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg border-0 bg-card">
       <CardHeader className="space-y-4 text-center pb-6">
-        <div className="flex items-center justify-center space-x-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <div className="w-4 h-4 bg-white rounded-sm"></div>
-          </div>
+        <div className="flex items-center justify-center space-x-3">
+          <img
+            src="/endoflow-logo.png"
+            alt="Endoflow"
+            className="w-10 h-10 object-contain"
+          />
           <CardTitle className="text-2xl font-bold text-primary">ENDOFLOW</CardTitle>
         </div>
         <CardDescription className="text-base text-muted-foreground">Clinic Portal</CardDescription>

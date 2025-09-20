@@ -12,7 +12,15 @@ export default function SignupPage() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 to-blue-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Join ENDOFLOW</h1>
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <img
+              src="/endoflow-logo.png"
+              alt="Endoflow"
+              className="w-12 h-12 object-contain"
+            />
+            <h1 className="text-3xl font-bold text-gray-900">ENDOFLOW</h1>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Join ENDOFLOW</h2>
           <p className="text-gray-600">
             Create your patient account to book appointments and manage your dental health
           </p>

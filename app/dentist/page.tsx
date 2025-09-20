@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -31,6 +31,7 @@ import {
 import { DentistAppointmentOrganizer } from "@/components/dentist/appointment-organizer"
 import { DentistTodaysView } from "@/components/dentist/todays-view"
 import { DentistPatientQueue } from "@/components/dentist/patient-queue"
+import { LivePatientManagement } from "@/components/dentist/live-patient-management"
 import { DentistBookingInterface } from "@/components/dentist/booking-interface"
 import { ClinicalCockpit } from "@/components/dentist/clinical-cockpit"
 import { RealtimeAppointments } from "@/components/dentist/realtime-appointments"
@@ -57,8 +58,7 @@ interface AppointmentStats {
 
 const navigationTabs = [
   { id: "today", label: "Today's View", icon: Activity },
-  { id: "patients", label: "Patient Queue", icon: Users },
-  { id: "cockpit", label: "Clinical Cockpit", icon: Stethoscope },
+  { id: "patients", label: "Patients", icon: Users },
   { id: "consultation", label: "New Consultation", icon: FileText },
   { id: "organizer", label: "Appointment Organizer", icon: CalendarDays },
   { id: "analysis", label: "Clinic Analysis", icon: TrendingUp },
@@ -212,179 +212,189 @@ export default function DentistDashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-              <Image
+      <header className="bg-white border-b border-gray-200">
+        <div className="px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
                 src="/endoflow-logo.png"
-                alt="ENDOFLOW Logo"
-                width={32}
-                height={32}
-                className="object-contain w-full h-full"
+                alt="Endoflow"
+                className="w-10 h-10 object-contain"
               />
+              <h1 className="text-2xl font-bold text-blue-600">ENDOFLOW</h1>
+              <span className="text-gray-500">Dental Clinic Management</span>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-blue-900">ENDOFLOW</h1>
-              <p className="text-sm text-gray-600">Dental Clinic Management</p>
-            </div>
-          </div>
 
-          <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm">
-              <Search className="w-4 h-4 mr-2" />
-              Quick Search
-            </Button>
-
-            {dentistData && (
-              <NotificationCenter userId={dentistData.id} role="dentist" />
-            )}
-
-            <div className="relative">
-              <Button
-                variant="ghost"
-                onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="flex items-center gap-2"
-              >
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Stethoscope className="w-4 h-4 text-blue-600" />
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-medium">{dentistData.name}</div>
-                  <div className="text-xs text-gray-500">{dentistData.specialty}</div>
-                </div>
-              </Button>
-
-              {showProfileMenu && (
-                <div className="absolute right-0 top-12 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                  <div className="p-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => {
-                        setShowProfileMenu(false)
-                        // Add profile settings logic
-                      }}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Settings
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                      onClick={() => {
-                        setShowProfileMenu(false)
-                        handleSignOut()
-                      }}
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
-                    </Button>
-                  </div>
-                </div>
+            <div className="flex items-center gap-4">
+              {dentistData && (
+                <NotificationCenter userId={dentistData.id} role="dentist" />
               )}
+
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center gap-2"
+                >
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Stethoscope className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="text-left">
+                    <div className="text-sm font-medium">{dentistData.name}</div>
+                    <div className="text-xs text-gray-500">{dentistData.specialty}</div>
+                  </div>
+                </Button>
+
+                {showProfileMenu && (
+                  <div className="absolute right-0 top-12 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                    <div className="p-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                          setShowProfileMenu(false)
+                        }}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Settings
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                        onClick={() => {
+                          setShowProfileMenu(false)
+                          handleSignOut()
+                        }}
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Sign Out
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <div className="flex">
-        {/* Navigation Tabs */}
-        <div className="w-64 bg-white border-r border-gray-200 min-h-screen">
-          <div className="p-4">
-            <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-              Dashboard
-            </h2>
-            <nav className="space-y-1">
-              {navigationTabs.map((tab) => {
-                const Icon = tab.icon
-                const isActive = activeTab === tab.id
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-blue-600 text-white"
-                        : "text-gray-700 hover:bg-gray-100"
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
+      {/* Navigation Tabs */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="px-6">
+          <nav className="flex space-x-8" aria-label="Tabs">
+            {navigationTabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                    isActive
+                      ? "border-blue-500 text-blue-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </nav>
         </div>
+      </div>
 
-        {/* Content Area */}
-        <div className="flex-1 p-6">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
-                    <p className="text-2xl font-bold text-gray-900">{appointmentStats.today}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Calendar className="w-6 h-6 text-blue-600" />
-                  </div>
+      {/* Main Content */}
+      <div className="p-6">
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {activeTab === "today" && (
+            <div>
+              {/* Page Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Today's Overview</h1>
+                  <p className="text-gray-500">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">This Week</p>
-                    <p className="text-2xl font-bold text-gray-900">{appointmentStats.week}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <CalendarDays className="w-6 h-6 text-green-600" />
-                  </div>
+                <div className="flex items-center gap-3">
+                  <Button variant="outline" size="sm">
+                    <Phone className="w-4 h-4 mr-2" />
+                    Emergency Contact
+                  </Button>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Appointment
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Pending</p>
-                    <p className="text-2xl font-bold text-gray-900">{appointmentStats.pending}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-yellow-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+              {/* Stats Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Today's Appointments</p>
+                        <p className="text-3xl font-bold text-gray-900">{appointmentStats.today}</p>
+                        <p className="text-sm text-gray-500">3 completed, 5 remaining</p>
+                      </div>
+                      <div className="w-8 h-8 text-gray-400">
+                        <Calendar className="w-full h-full" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">Completed</p>
-                    <p className="text-2xl font-bold text-gray-900">{appointmentStats.completed}</p>
-                  </div>
-                  <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center">
-                    <CheckCircle className="w-6 h-6 text-teal-600" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Completion Rate</p>
+                        <p className="text-3xl font-bold text-gray-900">38%</p>
+                        <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                          <div className="bg-blue-600 h-2 rounded-full" style={{width: '38%'}}></div>
+                        </div>
+                      </div>
+                      <div className="w-8 h-8 text-gray-400">
+                        <Activity className="w-full h-full" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-          {/* Tab Content */}
-          <div className="space-y-6">
-            {activeTab === "today" && (
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
+                        <p className="text-3xl font-bold text-gray-900">$2,450</p>
+                        <p className="text-sm text-green-600">+12% from yesterday</p>
+                      </div>
+                      <div className="w-8 h-8 text-gray-400">
+                        <TrendingUp className="w-full h-full" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">New Patients</p>
+                        <p className="text-3xl font-bold text-gray-900">2</p>
+                        <p className="text-sm text-gray-500">Welcome consultations</p>
+                      </div>
+                      <div className="w-8 h-8 text-gray-400">
+                        <Users className="w-full h-full" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Main Content Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2">
                   <DentistTodaysView
@@ -400,113 +410,331 @@ export default function DentistDashboard() {
                   />
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {activeTab === "patients" && (
-              <DentistPatientQueue
-                dentistId={dentistData.id}
-                onRefreshStats={loadAppointmentStats}
-                onSelectPatient={setSelectedPatient}
-              />
-            )}
-
-            {activeTab === "cockpit" && (
-              <ClinicalCockpit
-                selectedPatient={selectedPatient}
-                onNewAppointment={() => setActiveTab("consultation")}
-                onEditPatient={() => {
-                  // TODO: Implement edit patient functionality
-                  console.log("Edit patient:", selectedPatient)
+          {activeTab === "patients" && (
+            <div className="p-6">
+              <LivePatientManagement
+                onSelectPatient={(patient) => {
+                  setSelectedPatient(patient)
                 }}
+                selectedPatientId={selectedPatient?.id}
               />
-            )}
+            </div>
+          )}
 
-            {activeTab === "organizer" && (
-              <DentistAppointmentOrganizer
-                dentistId={dentistData.id}
-                dentistName={dentistData.name}
-                onRefreshStats={loadAppointmentStats}
-              />
-            )}
+          {activeTab === "consultation" && (
+            <div>
+              {/* Page Header */}
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold text-gray-900">New Consultation</h1>
+                <p className="text-gray-500">Search and select a patient to begin consultation</p>
+              </div>
 
-            {activeTab === "consultation" && (
-              <DentistBookingInterface
-                dentistId={dentistData.id}
-                onRefreshStats={loadAppointmentStats}
-              />
-            )}
+              {/* Patient Search */}
+              <div className="bg-white rounded-lg border border-gray-200 p-6">
+                <div className="relative mb-6">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    placeholder="Search patients by name, UHID, or phone number..."
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                  />
+                </div>
 
-            {/* Placeholder content for other tabs */}
-            {activeTab === "analysis" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    Clinic Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+                {/* Patient Results */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div>
+                      <h3 className="font-medium text-gray-900">Sarah Johnson</h3>
+                      <p className="text-sm text-gray-500">UHID: UH001234</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">34 years, Female</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div>
+                      <h3 className="font-medium text-gray-900">Michael Chen</h3>
+                      <p className="text-sm text-gray-500">UHID: UH001235</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">28 years, Male</p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <div>
+                      <h3 className="font-medium text-gray-900">Emily Rodriguez</h3>
+                      <p className="text-sm text-gray-500">UHID: UH001236</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-900">42 years, Female</p>
+                      <div className="w-2 h-2 bg-red-500 rounded-full inline-block ml-2"></div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Instructions */}
+                <div className="mt-8 text-center text-gray-500">
+                  <p>Please search and select a patient from the search bar above to begin the consultation.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "organizer" && (
+            <div>
+              {/* Page Header */}
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Appointment Organizer</h1>
+                  <p className="text-gray-500">Manage and schedule patient appointments</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Schedule Appointment
+                </Button>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Search appointments by patient or procedure..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>All Status</option>
+                    <option>Scheduled</option>
+                    <option>Completed</option>
+                    <option>Cancelled</option>
+                  </select>
+                  <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option>All Dentists</option>
+                    <option>Dr. Nisarg</option>
+                    <option>Dr. Pranav</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Calendar Section */}
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                {/* Calendar View - Takes 3 columns */}
+                <div className="lg:col-span-3 bg-white rounded-lg border border-gray-200">
+                  {/* Calendar Header */}
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-5 h-5 text-gray-500" />
+                          <span className="font-medium">Calendar View</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {/* View Toggle */}
+                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                          <button className="px-3 py-1 text-sm font-medium bg-blue-600 text-white rounded-md">
+                            Day
+                          </button>
+                          <button className="px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900">
+                            Week
+                          </button>
+                          <button className="px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900">
+                            Month
+                          </button>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Today
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Date Navigation */}
+                    <div className="flex items-center justify-between mt-4">
+                      <Button variant="ghost" size="sm">
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <h2 className="text-lg font-semibold">{format(new Date(), 'EEEE, MMMM d, yyyy')}</h2>
+                      <Button variant="ghost" size="sm">
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Time Slots */}
+                  <div className="p-4">
+                    <div className="space-y-2">
+                      {["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"].map((time) => (
+                        <div key={time} className="flex items-center border-b border-gray-100 py-3">
+                          <div className="w-20 text-sm text-gray-500 font-medium">
+                            {time}
+                          </div>
+                          <div className="flex-1 ml-4">
+                            {/* Empty time slot */}
+                            <div className="h-8 bg-gray-50 rounded border-2 border-dashed border-gray-200 hover:border-blue-300 cursor-pointer"></div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sidebar - Takes 1 column */}
+                <div className="space-y-6">
+                  {/* Today's Appointments */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-blue-600" />
+                        Today's Appointments
+                      </CardTitle>
+                      <p className="text-sm text-gray-500">0 appointments scheduled</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 text-sm">No appointments today</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Upcoming Appointments */}
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-blue-600" />
+                        Upcoming Appointments
+                      </CardTitle>
+                      <p className="text-sm text-gray-500">Next 5 scheduled appointments</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-8">
+                        <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <p className="text-gray-500 text-sm">No upcoming appointments</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "analysis" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Clinic Analysis</h1>
+                  <p className="text-gray-500">Analytics and performance insights</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Generate Report
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Dashboard</h3>
                   <p className="text-gray-600">Clinic analysis and reporting tools coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </div>
+            </div>
+          )}
 
-            {activeTab === "research" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Search className="w-5 h-5 text-blue-600" />
-                    Research Projects
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+          {activeTab === "research" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Research Projects</h1>
+                  <p className="text-gray-500">Clinical research and data analysis</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Project
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Research Studio</h3>
                   <p className="text-gray-600">Research studio and project management coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </div>
+            </div>
+          )}
 
-            {activeTab === "templates" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    Templates Manager
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+          {activeTab === "templates" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Templates Manager</h1>
+                  <p className="text-gray-500">Clinical documentation templates</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Template
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Template Library</h3>
                   <p className="text-gray-600">Clinical template management coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </div>
+            </div>
+          )}
 
-            {activeTab === "messages" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-blue-600" />
-                    Messages
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+          {activeTab === "messages" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
+                  <p className="text-gray-500">Patient and staff communication</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  New Message
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Message Center</h3>
                   <p className="text-gray-600">Patient and staff messaging system coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
+                </div>
+              </div>
+            </div>
+          )}
 
-            {activeTab === "tasks" && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CheckCircle className="w-5 h-5 text-blue-600" />
-                    Assistant Tasks
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
+          {activeTab === "tasks" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Assistant Tasks</h1>
+                  <p className="text-gray-500">Task delegation and workflow management</p>
+                </div>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Assign Task
+                </Button>
+              </div>
+              <div className="bg-white rounded-lg border border-gray-200 p-8">
+                <div className="text-center">
+                  <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Task Management</h3>
                   <p className="text-gray-600">Task delegation and management system coming soon...</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

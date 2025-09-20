@@ -27,6 +27,7 @@ import {
   markPatientNoShow
 } from "@/lib/actions/dentist"
 import { format, parseISO } from 'date-fns'
+import { formatINR, formatINRShort, DENTAL_PROCEDURE_PRICES, DentalProcedure } from '@/lib/utils/currency'
 
 interface Appointment {
   id: string
@@ -167,6 +168,29 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
   const inProgressCount = todaysAppointments.filter(apt => apt.status === 'in_progress').length
   const currentAppointment = todaysAppointments.find(isCurrentAppointment)
 
+  // Calculate revenue
+  const calculateRevenue = () => {
+    const completedRevenue = todaysAppointments
+      .filter(apt => apt.status === 'completed')
+      .reduce((total, apt) => {
+        const price = DENTAL_PROCEDURE_PRICES[apt.appointment_type as DentalProcedure] || 0
+        return total + price
+      }, 0)
+
+    const pendingRevenue = todaysAppointments
+      .filter(apt => ['scheduled', 'in_progress'].includes(apt.status))
+      .reduce((total, apt) => {
+        const price = DENTAL_PROCEDURE_PRICES[apt.appointment_type as DentalProcedure] || 0
+        return total + price
+      }, 0)
+
+    const totalRevenue = completedRevenue + pendingRevenue
+
+    return { completedRevenue, pendingRevenue, totalRevenue }
+  }
+
+  const { completedRevenue, pendingRevenue, totalRevenue } = calculateRevenue()
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -209,6 +233,14 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-700">{scheduledCount}</div>
                 <div className="text-sm text-gray-600">Scheduled</div>
+              </div>
+              <div className="text-center border-l border-blue-200 pl-6">
+                <div className="text-2xl font-bold text-green-600">{formatINRShort(completedRevenue)}</div>
+                <div className="text-sm text-green-500">Earned Today</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{formatINRShort(totalRevenue)}</div>
+                <div className="text-sm text-blue-500">Total Potential</div>
               </div>
             </div>
           </div>
@@ -297,9 +329,12 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
                             </span>
                           </div>
 
-                          <div className="mt-1">
+                          <div className="mt-1 flex items-center justify-between">
                             <span className="text-sm font-medium text-gray-700">
                               {appointment.appointment_type}
+                            </span>
+                            <span className="text-sm font-bold text-green-600">
+                              {formatINR(DENTAL_PROCEDURE_PRICES[appointment.appointment_type as DentalProcedure] || 0)}
                             </span>
                           </div>
 
@@ -423,6 +458,16 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
                         ? Math.round((completedCount / todaysAppointments.length) * 100)
                         : 0}%
                     </span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Revenue Earned</span>
+                    <span className="font-bold text-green-600">{formatINR(completedRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-sm text-gray-600">Potential Total</span>
+                    <span className="font-medium text-blue-600">{formatINR(totalRevenue)}</span>
                   </div>
                 </div>
               </div>
