@@ -135,24 +135,54 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
     setIsLoading(true)
     try {
       const supabase = createClient()
-      
+
       // Add some debugging
       console.log('Searching for patients with term:', searchTerm)
 
-      const { data, error } = await supabase
+      // Get active patients with their profiles
+      const { data: activeProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, status')
+        .eq('role', 'patient')
+        .eq('status', 'active')
+
+      if (profilesError) {
+        console.error('Error fetching active profiles:', profilesError)
+        throw profilesError
+      }
+
+      if (!activeProfiles || activeProfiles.length === 0) {
+        setPatients([])
+        return
+      }
+
+      // Get patient details for active profiles
+      const { data: patientData, error: patientsError } = await supabase
+        .schema('api')
         .from('patients')
-        .select(`
-          *,
-          profiles!inner(status)
-        `)
-        .eq('profiles.role', 'patient')
+        .select('*')
+        .in('id', activeProfiles.map(p => p.id))
         .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(10)
-        
-      console.log('Query result:', { data, error })
 
-      if (error) throw error
-      setPatients(data || [])
+      if (patientsError) {
+        console.error('Error fetching patient data:', patientsError)
+        throw patientsError
+      }
+
+      // Combine patient data with profile status
+      const patientsWithProfiles = (patientData || []).map(patient => {
+        const profile = activeProfiles.find(p => p.id === patient.id)
+        return {
+          ...patient,
+          profiles: {
+            status: profile?.status || 'active'
+          }
+        }
+      })
+
+      console.log('Query result:', { data: patientsWithProfiles })
+      setPatients(patientsWithProfiles)
     } catch (error) {
       // Better error logging to handle cases where error object is not properly serializable
       console.error('Error searching patients:', {
@@ -171,20 +201,36 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
     try {
       const supabase = createClient()
 
-      const { data, error } = await supabase
+      // Get patient profile first
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, full_name, status')
+        .eq('id', patientId)
+        .eq('role', 'patient')
+        .single()
+
+      if (profileError) throw profileError
+
+      // Get patient details
+      const { data: patientData, error: patientError } = await supabase
+        .schema('api')
         .from('patients')
-        .select(`
-          *,
-          profiles!inner(status)
-        `)
+        .select('*')
         .eq('id', patientId)
         .single()
 
-      if (error) throw error
-      if (data) {
-        setSelectedPatient(data)
-        setConsultationData(prev => ({ ...prev, patientId: data.id }))
-        onPatientSelect?.(data)
+      if (patientError) throw patientError
+
+      if (patientData) {
+        const patientWithProfile = {
+          ...patientData,
+          profiles: {
+            status: profile?.status || 'active'
+          }
+        }
+        setSelectedPatient(patientWithProfile)
+        setConsultationData(prev => ({ ...prev, patientId: patientData.id }))
+        onPatientSelect?.(patientWithProfile)
       }
     } catch (error) {
       // Better error logging to handle cases where error object is not properly serializable
