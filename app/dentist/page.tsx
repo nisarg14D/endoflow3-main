@@ -35,6 +35,7 @@ import { LivePatientManagement } from "@/components/dentist/live-patient-managem
 import { DentistBookingInterface } from "@/components/dentist/booking-interface"
 import { ClinicalCockpit } from "@/components/dentist/clinical-cockpit"
 import { RealtimeAppointments } from "@/components/dentist/realtime-appointments"
+import { NewConsultation } from "@/components/dentist/new-consultation"
 import { NotificationCenter } from "@/components/notifications/notification-center"
 import { getCurrentDentist, getTodaysAppointments, getWeekAppointments, getDentistAppointmentsAction } from "@/lib/actions/dentist"
 import { logout } from "@/lib/actions/auth"
@@ -425,64 +426,7 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "consultation" && (
-            <div>
-              {/* Page Header */}
-              <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-900">New Consultation</h1>
-                <p className="text-gray-500">Search and select a patient to begin consultation</p>
-              </div>
-
-              {/* Patient Search */}
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <div className="relative mb-6">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="text"
-                    placeholder="Search patients by name, UHID, or phone number..."
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                  />
-                </div>
-
-                {/* Patient Results */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Sarah Johnson</h3>
-                      <p className="text-sm text-gray-500">UHID: UH001234</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">34 years, Female</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Michael Chen</h3>
-                      <p className="text-sm text-gray-500">UHID: UH001235</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">28 years, Male</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
-                    <div>
-                      <h3 className="font-medium text-gray-900">Emily Rodriguez</h3>
-                      <p className="text-sm text-gray-500">UHID: UH001236</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-gray-900">42 years, Female</p>
-                      <div className="w-2 h-2 bg-red-500 rounded-full inline-block ml-2"></div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Instructions */}
-                <div className="mt-8 text-center text-gray-500">
-                  <p>Please search and select a patient from the search bar above to begin the consultation.</p>
-                </div>
-              </div>
-            </div>
+            <NewConsultation dentistId={dentistData.id} />
           )}
 
           {activeTab === "organizer" && (

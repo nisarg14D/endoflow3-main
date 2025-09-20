@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { PrescriptionManagement } from "./prescription-management"
+import { FollowUpManagement } from "./follow-up-management"
 
 interface ToothData {
   number: string
@@ -23,12 +25,15 @@ interface ToothData {
 interface InteractiveDentalChartProps {
   onToothSelect?: (toothNumber: string) => void
   readOnly?: boolean
+  patientId?: string
 }
 
-export function InteractiveDentalChart({ onToothSelect, readOnly = false }: InteractiveDentalChartProps) {
+export function InteractiveDentalChart({ onToothSelect, readOnly = false, patientId }: InteractiveDentalChartProps) {
   const [selectedTooth, setSelectedTooth] = useState<string | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
+  const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false)
+  const [isFollowUpOpen, setIsFollowUpOpen] = useState(false)
   const [toothData, setToothData] = useState<Record<string, ToothData>>({
     "16": { number: "16", status: "caries", diagnosis: "Deep caries", treatment: "Filling required", date: "2024-01-15" },
     "24": { number: "24", status: "filled", diagnosis: "Composite restoration", treatment: "Completed", date: "2023-12-20" },
@@ -168,74 +173,231 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false }: Inte
 
     return (
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Tooth {selectedTooth} - Diagnosis & Treatment</DialogTitle>
+        <DialogContent className="max-w-6xl h-[90vh] overflow-hidden">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="text-xl font-bold flex items-center gap-3">
+              <div className={`w-8 h-8 rounded-full ${getToothColor(tooth.status)} border-2 flex items-center justify-center`}>
+                <span className="text-sm font-bold">{selectedTooth}</span>
+              </div>
+              Tooth {selectedTooth} - Diagnosis & Treatment Planning
+            </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue={tooth.status} onValueChange={(value) => {
-                  const newData = { ...tooth, status: value as ToothData['status'] }
-                  setToothData(prev => ({ ...prev, [selectedTooth]: newData }))
-                }}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="healthy">Healthy</SelectItem>
-                    <SelectItem value="caries">Caries</SelectItem>
-                    <SelectItem value="filled">Filled</SelectItem>
-                    <SelectItem value="crown">Crown</SelectItem>
-                    <SelectItem value="root_canal">Root Canal</SelectItem>
-                    <SelectItem value="extraction_needed">Extraction Needed</SelectItem>
-                    <SelectItem value="missing">Missing</SelectItem>
-                    <SelectItem value="attention">Needs Attention</SelectItem>
-                  </SelectContent>
-                </Select>
+
+          <div className="flex-1 grid grid-cols-2 gap-6 overflow-hidden">
+            {/* Diagnosis Section */}
+            <div className="space-y-4 overflow-auto">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <h3 className="text-lg font-semibold text-blue-900 mb-3">Diagnosis</h3>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="current-status">Current Status</Label>
+                    <Select defaultValue={tooth.status} onValueChange={(value) => {
+                      const newData = { ...tooth, status: value as ToothData['status'] }
+                      setToothData(prev => ({ ...prev, [selectedTooth]: newData }))
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="healthy">Healthy</SelectItem>
+                        <SelectItem value="caries">Caries</SelectItem>
+                        <SelectItem value="filled">Filled</SelectItem>
+                        <SelectItem value="crown">Crown</SelectItem>
+                        <SelectItem value="root_canal">Root Canal</SelectItem>
+                        <SelectItem value="extraction_needed">Extraction Needed</SelectItem>
+                        <SelectItem value="missing">Missing</SelectItem>
+                        <SelectItem value="attention">Needs Attention</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="primary-diagnosis">Primary Diagnosis</Label>
+                    <Select defaultValue={tooth.diagnosis}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select diagnosis..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="dental-caries">Dental Caries</SelectItem>
+                        <SelectItem value="deep-caries">Deep Caries</SelectItem>
+                        <SelectItem value="pulpitis">Pulpitis</SelectItem>
+                        <SelectItem value="periapical-abscess">Periapical Abscess</SelectItem>
+                        <SelectItem value="fractured-tooth">Fractured Tooth</SelectItem>
+                        <SelectItem value="cracked-tooth">Cracked Tooth</SelectItem>
+                        <SelectItem value="worn-restoration">Worn Restoration</SelectItem>
+                        <SelectItem value="gingival-recession">Gingival Recession</SelectItem>
+                        <SelectItem value="periodontal-disease">Periodontal Disease</SelectItem>
+                        <SelectItem value="impacted-tooth">Impacted Tooth</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="diagnosis-details">Diagnosis Details</Label>
+                    <Textarea
+                      placeholder="Detailed diagnosis description..."
+                      defaultValue={tooth.diagnosis || ""}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="examination-date">Examination Date</Label>
+                    <Input
+                      type="date"
+                      defaultValue={tooth.date || new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="symptoms">Symptoms</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {['Pain', 'Sensitivity', 'Swelling', 'Bleeding', 'Mobility', 'Fracture'].map((symptom) => (
+                        <label key={symptom} className="flex items-center gap-2 text-sm">
+                          <input type="checkbox" className="rounded" />
+                          {symptom}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="diagnostic-notes">Diagnostic Notes</Label>
+                    <Textarea
+                      placeholder="Additional diagnostic observations..."
+                      rows={3}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="date">Date</Label>
-                <Input
-                  type="date"
-                  defaultValue={tooth.date || new Date().toISOString().split('T')[0]}
-                />
+            </div>
+
+            {/* Treatment Plan Section */}
+            <div className="space-y-4 overflow-auto">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <h3 className="text-lg font-semibold text-green-900 mb-3">Treatment Plan</h3>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="treatment-type">Recommended Treatment</Label>
+                    <Select defaultValue={tooth.treatment}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select treatment..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="composite-filling">Composite Filling</SelectItem>
+                        <SelectItem value="amalgam-filling">Amalgam Filling</SelectItem>
+                        <SelectItem value="root-canal-therapy">Root Canal Therapy</SelectItem>
+                        <SelectItem value="crown-placement">Crown Placement</SelectItem>
+                        <SelectItem value="extraction">Extraction</SelectItem>
+                        <SelectItem value="deep-cleaning">Deep Cleaning</SelectItem>
+                        <SelectItem value="scaling-polishing">Scaling & Polishing</SelectItem>
+                        <SelectItem value="fluoride-treatment">Fluoride Treatment</SelectItem>
+                        <SelectItem value="dental-implant">Dental Implant</SelectItem>
+                        <SelectItem value="bridge-placement">Bridge Placement</SelectItem>
+                        <SelectItem value="observation">Observation</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="treatment-priority">Priority</Label>
+                    <Select defaultValue="medium">
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="urgent">Urgent (Emergency)</SelectItem>
+                        <SelectItem value="high">High Priority</SelectItem>
+                        <SelectItem value="medium">Medium Priority</SelectItem>
+                        <SelectItem value="low">Low Priority</SelectItem>
+                        <SelectItem value="routine">Routine</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="treatment-plan">Treatment Plan Details</Label>
+                    <Textarea
+                      placeholder="Detailed treatment plan description..."
+                      defaultValue={tooth.treatment || ""}
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label htmlFor="estimated-duration">Duration</Label>
+                      <Select defaultValue="60">
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="30">30 minutes</SelectItem>
+                          <SelectItem value="60">60 minutes</SelectItem>
+                          <SelectItem value="90">90 minutes</SelectItem>
+                          <SelectItem value="120">2 hours</SelectItem>
+                          <SelectItem value="180">3 hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <Label htmlFor="estimated-cost">Estimated Cost (₹)</Label>
+                      <Input placeholder="Enter cost..." />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="scheduled-date">Scheduled Date</Label>
+                    <Input type="date" />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="treatment-notes">Treatment Notes</Label>
+                    <Textarea
+                      placeholder="Additional treatment considerations..."
+                      rows={3}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="follow-up">Follow-up Required</Label>
+                    <div className="flex items-center gap-4 mt-2">
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="followup" value="yes" />
+                        <span className="text-sm">Yes</span>
+                      </label>
+                      <label className="flex items-center gap-2">
+                        <input type="radio" name="followup" value="no" />
+                        <span className="text-sm">No</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div>
-              <Label htmlFor="diagnosis">Diagnosis</Label>
-              <Input
-                placeholder="Enter diagnosis..."
-                defaultValue={tooth.diagnosis || ""}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="treatment">Treatment Plan</Label>
-              <Input
-                placeholder="Enter treatment plan..."
-                defaultValue={tooth.treatment || ""}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="notes">Clinical Notes</Label>
-              <Textarea
-                placeholder="Additional notes..."
-                defaultValue={tooth.notes || ""}
-                rows={3}
-              />
-            </div>
-
-            <div className="flex gap-2 pt-4">
+          {/* Footer Actions */}
+          <div className="border-t pt-4 flex justify-between items-center">
+            <div className="flex gap-2">
               <Button
-                onClick={() => handleSaveToothData(selectedTooth, tooth)}
-                className="flex-1"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPrescriptionOpen(true)}
               >
-                Save Changes
+                Add to Prescription
               </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsFollowUpOpen(true)}
+              >
+                Schedule Follow-up
+              </Button>
+            </div>
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -244,6 +406,12 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false }: Inte
                 }}
               >
                 Cancel
+              </Button>
+              <Button
+                onClick={() => handleSaveToothData(selectedTooth, tooth)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                Save Diagnosis & Treatment
               </Button>
             </div>
           </div>
@@ -413,6 +581,43 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false }: Inte
       {/* Modals */}
       {renderFullScreenChart()}
       {renderToothDialog()}
+
+      {/* Prescription Management Dialog */}
+      <Dialog open={isPrescriptionOpen} onOpenChange={setIsPrescriptionOpen}>
+        <DialogContent className="max-w-6xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Prescription Management</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <PrescriptionManagement
+              patientId={patientId}
+              onPrescriptionSave={(prescription) => {
+                console.log('Prescription saved:', prescription)
+                setIsPrescriptionOpen(false)
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-up Management Dialog */}
+      <Dialog open={isFollowUpOpen} onOpenChange={setIsFollowUpOpen}>
+        <DialogContent className="max-w-6xl h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Follow-up Management</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-auto">
+            <FollowUpManagement
+              patientId={patientId}
+              toothNumber={selectedTooth || undefined}
+              onFollowUpSave={(followUp) => {
+                console.log('Follow-up saved:', followUp)
+                setIsFollowUpOpen(false)
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
