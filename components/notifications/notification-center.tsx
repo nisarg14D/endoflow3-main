@@ -46,11 +46,11 @@ export function NotificationCenter({ userId, role }: NotificationCenterProps) {
     }
 
     // Handle navigation based on notification type and role
-    if (notification.type.includes('appointment') && notification.related_id) {
+    if (notification.type.includes('appointment') && notification.relatedId) {
       // Navigate to appointment details
       const baseUrl = role === 'patient' ? '/patient' :
                      role === 'assistant' ? '/assistant' : '/dentist';
-      window.location.href = `${baseUrl}?appointment=${notification.related_id}`;
+      window.location.href = `${baseUrl}?appointment=${notification.relatedId}`;
     }
   };
 

@@ -31,16 +31,16 @@ import { format, parseISO, isToday, isFuture, isPast } from 'date-fns'
 
 interface Appointment {
   id: string
-  patient_id: string
-  scheduled_date: string
-  scheduled_time: string
-  duration_minutes: number
-  appointment_type: string
+  patientId: string
+  scheduledDate: string
+  scheduledTime: string
+  durationMinutes: number
+  appointmentType: string
   status: string
-  notes?: string
+  notes?: string | null
   patients?: {
-    first_name: string
-    last_name: string
+    firstName: string
+    lastName: string
   }
 }
 
@@ -94,9 +94,9 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
       if (result.success && result.data) {
         // Sort by date and time
         const sorted = result.data.sort((a, b) => {
-          const dateCompare = a.scheduled_date.localeCompare(b.scheduled_date)
+          const dateCompare = a.scheduledDate.localeCompare(b.scheduledDate)
           if (dateCompare === 0) {
-            return a.scheduled_time.localeCompare(b.scheduled_time)
+            return a.scheduledTime.localeCompare(b.scheduledTime)
           }
           return dateCompare
         })
@@ -114,9 +114,9 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
 
     if (searchTerm) {
       filtered = filtered.filter(apt =>
-        apt.patients?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        apt.patients?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        apt.appointment_type.toLowerCase().includes(searchTerm.toLowerCase())
+        apt.patients?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        apt.patients?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        apt.appointmentType.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 

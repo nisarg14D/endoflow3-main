@@ -110,9 +110,9 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false }: Inte
     setToothData(prev => ({
       ...prev,
       [toothNumber]: {
+        ...prev[toothNumber],
         number: toothNumber,
         status: "healthy",
-        ...prev[toothNumber],
         ...data,
         date: new Date().toISOString().split('T')[0]
       }

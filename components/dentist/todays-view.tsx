@@ -30,16 +30,16 @@ import { format, parseISO } from 'date-fns'
 
 interface Appointment {
   id: string
-  patient_id: string
-  scheduled_date: string
-  scheduled_time: string
-  duration_minutes: number
-  appointment_type: string
+  patientId: string
+  scheduledDate: string
+  scheduledTime: string
+  durationMinutes: number
+  appointmentType: string
   status: string
   notes?: string
   patients?: {
-    first_name: string
-    last_name: string
+    firstName: string
+    lastName: string
   }
 }
 
@@ -73,7 +73,7 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
       if (result.success && result.data) {
         // Sort by time
         const sorted = result.data.sort((a, b) =>
-          a.scheduled_time.localeCompare(b.scheduled_time)
+          a.scheduledTime.localeCompare(b.scheduledTime)
         )
         setTodaysAppointments(sorted)
       }
