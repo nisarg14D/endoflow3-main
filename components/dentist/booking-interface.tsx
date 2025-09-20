@@ -87,7 +87,7 @@ export function DentistBookingInterface({ dentistId, onRefreshStats }: BookingIn
     try {
       const result = await getPatientsForBooking()
       if (result.success && result.data) {
-        setPatients(result.data)
+        setPatients(result.data as any)
       }
     } catch (error) {
       console.error('Error loading patients:', error)

@@ -8,11 +8,11 @@ export async function POST() {
     console.log('🔧 Fixing authentication issues for dentists...');
 
     const results = {
-      existing_users: [],
-      deleted_users: [],
-      created_users: [],
-      profiles_created: [],
-      errors: []
+      existing_users: [] as any[],
+      deleted_users: [] as string[],
+      created_users: [] as any[],
+      profiles_created: [] as string[],
+      errors: [] as string[]
     };
 
     // First, list all existing users

@@ -98,7 +98,7 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
 
       const result = await getDentistAppointmentsAction(startDate, endDate)
       if (result.success && result.data) {
-        setAppointments(result.data)
+        setAppointments(result.data as any)
       }
     } catch (error) {
       console.error('Error loading appointments:', error)

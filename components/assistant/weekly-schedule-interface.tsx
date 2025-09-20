@@ -29,9 +29,15 @@ import { format, addDays, startOfWeek, isSameDay } from 'date-fns'
 
 interface Patient {
   id: string
-  first_name: string
-  last_name: string
-  created_at: string
+  firstName: string
+  lastName: string
+  createdAt: Date
+  phone: string | null
+  email: string | null
+  dateOfBirth: string | null
+  medicalHistorySummary: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
   priority?: 'high' | 'medium' | 'low'
   uhid?: string
   treatment_type?: string
@@ -40,8 +46,9 @@ interface Patient {
 
 interface Dentist {
   id: string
-  full_name: string
-  specialty?: string
+  fullName: string
+  specialty: string | null
+  createdAt: Date
 }
 
 interface TimeSlot {
@@ -97,7 +104,7 @@ export function WeeklyScheduleInterface({
         setDentists(result.data)
         // Auto-select Dr. Nisarg if available
         const drNisarg = result.data.find(d =>
-          d.full_name.toLowerCase().includes('nisarg') ||
+          d.fullName.toLowerCase().includes('nisarg') ||
           d.id === 'dr-nisarg'
         )
         if (drNisarg) {
@@ -116,7 +123,7 @@ export function WeeklyScheduleInterface({
         // Transform patients to include mock priority data
         const transformedPatients = result.data.map(patient => ({
           ...patient,
-          priority: Math.random() > 0.6 ? 'high' : Math.random() > 0.3 ? 'medium' : 'low',
+          priority: (Math.random() > 0.6 ? 'high' : Math.random() > 0.3 ? 'medium' : 'low') as 'high' | 'medium' | 'low',
           treatment_type: ['Root Canal Follow-up', 'Crown Preparation', 'Routine Cleaning', 'Dental Examination'][Math.floor(Math.random() * 4)],
           requested_date: format(addDays(new Date(), Math.floor(Math.random() * 7)), 'yyyy-MM-dd')
         }))
@@ -145,10 +152,16 @@ export function WeeklyScheduleInterface({
           ...(isBooked && {
             patient: {
               id: 'mock-' + Math.random(),
-              first_name: ['John', 'Jane', 'Bob', 'Alice'][Math.floor(Math.random() * 4)],
-              last_name: ['Smith', 'Doe', 'Johnson', 'Wilson'][Math.floor(Math.random() * 4)],
-              created_at: new Date().toISOString()
-            },
+              firstName: ['John', 'Jane', 'Bob', 'Alice'][Math.floor(Math.random() * 4)],
+              lastName: ['Smith', 'Doe', 'Johnson', 'Wilson'][Math.floor(Math.random() * 4)],
+              createdAt: new Date(),
+              phone: null,
+              email: null,
+              dateOfBirth: null,
+              medicalHistorySummary: null,
+              emergencyContactName: null,
+              emergencyContactPhone: null
+            } as Patient,
             appointmentId: 'apt-' + Math.random()
           })
         }
@@ -214,7 +227,7 @@ export function WeeklyScheduleInterface({
               time: timeSlot,
               status: 'booked',
               patient: draggedPatient,
-              appointmentId: requestResult.data.id
+              appointmentId: requestResult.data?.id || 'unknown'
             }
           }
         }))
@@ -224,7 +237,7 @@ export function WeeklyScheduleInterface({
 
         setSubmitResult({
           success: true,
-          message: `Appointment scheduled for ${draggedPatient.first_name} ${draggedPatient.last_name}`
+          message: `Appointment scheduled for ${draggedPatient.firstName} ${draggedPatient.lastName}`
         })
 
         setTimeout(() => setSubmitResult(null), 3000)
@@ -282,7 +295,7 @@ export function WeeklyScheduleInterface({
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Weekly Schedule</h2>
           <p className="text-gray-600">
-            Scheduling for: {selectedDentistInfo?.full_name || 'Select Dentist'}
+            Scheduling for: {selectedDentistInfo?.fullName || 'Select Dentist'}
           </p>
         </div>
         <div className="flex items-center gap-4">
@@ -296,7 +309,7 @@ export function WeeklyScheduleInterface({
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     <div>
-                      <div className="font-medium">{dentist.full_name}</div>
+                      <div className="font-medium">{dentist.fullName}</div>
                       {dentist.specialty && (
                         <div className="text-xs text-gray-500">{dentist.specialty}</div>
                       )}
@@ -378,13 +391,13 @@ export function WeeklyScheduleInterface({
                         <div className="flex-shrink-0">
                           <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
                             <span className="text-sm font-medium text-gray-600">
-                              {patient.first_name[0]}{patient.last_name[0]}
+                              {patient.firstName[0]}{patient.lastName[0]}
                             </span>
                           </div>
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-gray-900">
-                            {patient.first_name} {patient.last_name}
+                            {patient.firstName} {patient.lastName}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
                             {patient.uhid || `UH${patient.id.slice(-6)}`}
@@ -463,8 +476,8 @@ export function WeeklyScheduleInterface({
                             <div className="h-full p-1">
                               <div className="w-full h-full bg-teal-100 border border-teal-200 rounded p-2 text-xs">
                                 <div className="font-medium text-teal-800">
-                                  {schedule[dateKey][timeSlot].patient?.first_name}{' '}
-                                  {schedule[dateKey][timeSlot].patient?.last_name}
+                                  {schedule[dateKey][timeSlot].patient?.firstName}{' '}
+                                  {schedule[dateKey][timeSlot].patient?.lastName}
                                 </div>
                                 <div className="text-teal-600 mt-1">
                                   <CheckCircle className="w-3 h-3 inline mr-1" />

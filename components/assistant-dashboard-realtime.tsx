@@ -45,15 +45,15 @@ export function RealtimeAssistantDashboard({
     const fromPendingRegs = initialPendingRegistrations.map(reg => {
       let formData
       try {
-        formData = reg.form_data ? JSON.parse(reg.form_data) : {}
+        formData = reg.formData ? JSON.parse(reg.formData) : {}
       } catch (error) {
         console.error('Failed to parse form_data for registration:', reg.id, error)
         formData = {}
       }
       return {
-        id: reg.user_id || reg.id,  // Use user_id, fallback to registration id
+        id: reg.userId || reg.id,  // Use userId, fallback to registration id
         fullName: `${formData.firstName || 'Unknown'} ${formData.lastName || 'User'}`,
-        createdAt: reg.submitted_at || reg.submittedAt || new Date().toISOString(),
+        createdAt: reg.submittedAt ? reg.submittedAt.toISOString() : new Date().toISOString(),
         source: 'pending_registrations' as const,
         formData,
         registrationId: reg.id  // Keep registration id for reference
@@ -256,7 +256,7 @@ export function RealtimeAssistantDashboard({
               {
                 id: newReg.id,
                 fullName: `${formData.firstName || 'Unknown'} ${formData.lastName || 'User'}`,
-                createdAt: newReg.submittedAt,
+                createdAt: newReg.submittedAt ? newReg.submittedAt.toISOString() : new Date().toISOString(),
                 source: 'pending_registrations',
                 formData
               }

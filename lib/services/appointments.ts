@@ -21,6 +21,15 @@ import {
   URGENCY_LEVELS
 } from '@/lib/types/appointments';
 
+// Re-export types for convenience
+export type {
+  AppointmentRequestData,
+  AppointmentScheduleData,
+  AppointmentConflict,
+  TimeSlot,
+  AppointmentAvailability
+} from '@/lib/types/appointments';
+
 /**
  * Enhanced Appointment Service Functions
  * Provides comprehensive appointment management with validation,

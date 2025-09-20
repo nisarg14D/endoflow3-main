@@ -26,13 +26,14 @@ export default async function AppointmentRequestDetails({ params }: AppointmentR
     notFound()
   }
 
-  const patient = request.patients
-  const painLevelColor = request.pain_level >= 7 ? 'text-red-600' :
-                         request.pain_level >= 4 ? 'text-yellow-600' :
+  const patient = (request as any).profiles
+  const painLevel = request.painLevel || 0
+  const painLevelColor = painLevel >= 7 ? 'text-red-600' :
+                         painLevel >= 4 ? 'text-yellow-600' :
                          'text-green-600'
 
-  const urgencyLevel = request.pain_level >= 7 ? 'HIGH' :
-                       request.pain_level >= 4 ? 'MEDIUM' :
+  const urgencyLevel = painLevel >= 7 ? 'HIGH' :
+                       painLevel >= 4 ? 'MEDIUM' :
                        'LOW'
 
   return (
@@ -67,23 +68,12 @@ export default async function AppointmentRequestDetails({ params }: AppointmentR
               <CardContent className="space-y-4">
                 <div>
                   <div className="font-semibold text-lg">
-                    {patient?.first_name} {patient?.last_name}
+                    {patient?.full_name || 'Unknown Patient'}
                   </div>
-                  {patient?.date_of_birth && (
-                    <div className="text-sm text-gray-600">
-                      DOB: {new Date(patient.date_of_birth).toLocaleDateString()}
-                    </div>
-                  )}
+                  <div className="text-sm text-gray-600">
+                    Patient ID: {request.patientId}
+                  </div>
                 </div>
-
-                {patient?.medical_history_summary && (
-                  <div>
-                    <div className="font-medium text-sm text-gray-700 mb-1">Medical History Summary</div>
-                    <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                      {patient.medical_history_summary}
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -99,54 +89,54 @@ export default async function AppointmentRequestDetails({ params }: AppointmentR
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <div className="font-medium text-sm text-gray-700">Appointment Type</div>
-                    <div className="text-sm">{request.appointment_type}</div>
+                    <div className="text-sm">{request.appointmentType}</div>
                   </div>
                   <div>
                     <div className="font-medium text-sm text-gray-700">Preferred Date</div>
-                    <div className="text-sm">{new Date(request.preferred_date).toLocaleDateString()}</div>
+                    <div className="text-sm">{new Date(request.preferredDate).toLocaleDateString()}</div>
                   </div>
                   <div>
                     <div className="font-medium text-sm text-gray-700">Preferred Time</div>
-                    <div className="text-sm">{request.preferred_time}</div>
+                    <div className="text-sm">{request.preferredTime}</div>
                   </div>
-                  {request.pain_level && (
+                  {request.painLevel && (
                     <div>
                       <div className="font-medium text-sm text-gray-700">Pain Level</div>
                       <div className={`text-sm font-medium ${painLevelColor}`}>
-                        {request.pain_level}/10 ({urgencyLevel} PRIORITY)
+                        {painLevel}/10 ({urgencyLevel} PRIORITY)
                       </div>
                     </div>
                   )}
                 </div>
 
-                {request.reason_for_visit && (
+                {request.reasonForVisit && (
                   <div>
                     <div className="font-medium text-sm text-gray-700 mb-2">Reason for Visit</div>
                     <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                      {request.reason_for_visit}
+                      {request.reasonForVisit}
                     </div>
                   </div>
                 )}
 
-                {request.additional_notes && (
+                {request.additionalNotes && (
                   <div>
                     <div className="font-medium text-sm text-gray-700 mb-2">Additional Notes</div>
                     <div className="text-sm text-gray-600 p-3 bg-gray-50 rounded">
-                      {request.additional_notes}
+                      {request.additionalNotes}
                     </div>
                   </div>
                 )}
 
                 <div className="pt-3 border-t">
                   <div className="text-xs text-gray-500">
-                    Submitted: {new Date(request.created_at).toLocaleString()}
+                    Submitted: {new Date(request.createdAt).toLocaleString()}
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             {/* Priority Alert */}
-            {request.pain_level >= 7 && (
+            {painLevel >= 7 && (
               <Card className="border-red-200 bg-red-50">
                 <CardContent className="pt-6">
                   <div className="flex items-center gap-3 text-red-800">
@@ -174,10 +164,10 @@ export default async function AppointmentRequestDetails({ params }: AppointmentR
                 <AppointmentBookingForm
                   requestId={request.id}
                   availableDentists={availableDentists}
-                  preferredDate={request.preferred_date}
-                  preferredTime={request.preferred_time}
-                  appointmentType={request.appointment_type}
-                  isUrgent={request.pain_level >= 7}
+                  preferredDate={request.preferredDate}
+                  preferredTime={request.preferredTime}
+                  appointmentType={request.appointmentType}
+                  isUrgent={painLevel >= 7}
                 />
               </CardContent>
             </Card>

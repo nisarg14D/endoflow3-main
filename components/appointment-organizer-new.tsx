@@ -602,13 +602,13 @@ export function AppointmentOrganizerNew({ currentAssistantId }: AppointmentOrgan
                   {/* Book Button */}
                   <Button
                     onClick={handleBookAppointment}
-                    disabled={
+                    disabled={Boolean(
                       isBooking ||
                       !selectedDentist ||
                       !selectedDate ||
                       !selectedTime ||
                       (selectedPatient && !appointmentType)
-                    }
+                    )}
                     className="w-full bg-teal-600 hover:bg-teal-700"
                   >
                     {isBooking ? (

@@ -24,9 +24,9 @@ export async function POST() {
 
     const results = {
       dentists: dentists || [],
-      profiles_created: [],
-      existing_profiles: [],
-      errors: []
+      profiles_created: [] as string[],
+      existing_profiles: [] as string[],
+      errors: [] as string[]
     };
 
     // For each dentist, ensure they have a profile

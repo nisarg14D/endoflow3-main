@@ -71,7 +71,7 @@ const navigationTabs = [
 export default function DentistDashboard() {
   const [activeTab, setActiveTab] = useState("today")
   const [dentistData, setDentistData] = useState<DentistData | null>(null)
-  const [selectedPatient, setSelectedPatient] = useState(null)
+  const [selectedPatient, setSelectedPatient] = useState<any>(null)
   const [appointmentStats, setAppointmentStats] = useState<AppointmentStats>({
     today: 0,
     week: 0,
@@ -368,7 +368,7 @@ export default function DentistDashboard() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Today's Revenue</p>
-                        <p className="text-3xl font-bold text-gray-900">$2,450</p>
+                        <p className="text-3xl font-bold text-gray-900">₹2,450</p>
                         <p className="text-sm text-green-600">+12% from yesterday</p>
                       </div>
                       <div className="w-8 h-8 text-gray-400">

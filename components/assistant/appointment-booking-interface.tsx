@@ -39,15 +39,22 @@ import { AppointmentAvailability, TimeSlot } from "@/lib/services/appointments"
 
 interface Patient {
   id: string
-  first_name: string
-  last_name: string
-  created_at: string
+  firstName: string
+  lastName: string
+  createdAt: Date
+  phone: string | null
+  email: string | null
+  dateOfBirth: string | null
+  medicalHistorySummary: string | null
+  emergencyContactName: string | null
+  emergencyContactPhone: string | null
 }
 
 interface Dentist {
   id: string
-  full_name: string
-  specialty?: string
+  fullName: string
+  specialty: string | null
+  createdAt: Date
 }
 
 interface AppointmentBookingInterfaceProps {
@@ -247,7 +254,7 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
   }
 
   const filteredPatients = patients.filter(patient =>
-    `${patient.first_name} ${patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${patient.firstName} ${patient.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getAvailableTimesForDate = (date: string): TimeSlot[] => {
@@ -338,10 +345,10 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
                           }`} />
                           <div className="flex-1">
                             <div className="font-medium text-sm">
-                              {patient.first_name} {patient.last_name}
+                              {patient.firstName} {patient.lastName}
                             </div>
                             <div className="text-xs text-gray-500">
-                              Patient since {new Date(patient.created_at).toLocaleDateString()}
+                              Patient since {new Date(patient.createdAt).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
@@ -440,7 +447,7 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
                           <div className="flex items-center gap-2">
                             <Stethoscope className="w-4 h-4" />
                             <div>
-                              <div className="font-medium">{dentist.full_name}</div>
+                              <div className="font-medium">{dentist.fullName}</div>
                               {dentist.specialty && (
                                 <div className="text-xs text-gray-500">{dentist.specialty}</div>
                               )}
@@ -552,8 +559,8 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
                       Booking Summary
                     </h4>
                     <div className="space-y-2 text-sm">
-                      <div><span className="font-medium">Patient:</span> {selectedPatient.first_name} {selectedPatient.last_name}</div>
-                      <div><span className="font-medium">Dentist:</span> {selectedDentist.full_name}</div>
+                      <div><span className="font-medium">Patient:</span> {selectedPatient.firstName} {selectedPatient.lastName}</div>
+                      <div><span className="font-medium">Dentist:</span> {selectedDentist.fullName}</div>
                       <div><span className="font-medium">Type:</span> {directBookingForm.appointmentType}</div>
                       <div className="flex items-center gap-4">
                         <span><span className="font-medium">Date:</span> {new Date(directBookingForm.scheduledDate).toLocaleDateString()}</span>

@@ -45,7 +45,7 @@ export async function POST() {
         error: insertError?.message || null,
         missing_columns: insertError ? ['phone', 'email', 'emergency_contact_name', 'emergency_contact_phone'] : []
       },
-      analysis: {},
+      analysis: {} as Record<string, boolean>,
       manual_sql_needed: false
     };
 

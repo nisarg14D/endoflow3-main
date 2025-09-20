@@ -167,7 +167,7 @@ export default async function AssistantDashboard({ searchParams }: AssistantDash
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-full">
         {/* Column 1: Real-time Appointment Requests */}
         <RealtimeAppointmentRequests
-          initialRequests={appointmentRequests}
+          initialRequests={appointmentRequests as any}
           viewType="assistant"
         />
 

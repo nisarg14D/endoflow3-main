@@ -22,11 +22,11 @@ export default function DebugSchemaPage() {
       })
 
       const data = await response.json()
-      setResults(prev => ({ ...prev, schemaAnalysis: data }))
+      setResults((prev: any) => ({ ...prev, schemaAnalysis: data }))
       console.log('Schema Analysis:', data)
     } catch (error) {
       console.error('Schema analysis failed:', error)
-      setResults(prev => ({ ...prev, schemaAnalysis: { success: false, error: String(error) } }))
+      setResults((prev: any) => ({ ...prev, schemaAnalysis: { success: false, error: String(error) } }))
     }
 
     setCurrentStep(null)
@@ -44,11 +44,11 @@ export default function DebugSchemaPage() {
       })
 
       const data = await response.json()
-      setResults(prev => ({ ...prev, authFix: data }))
+      setResults((prev: any) => ({ ...prev, authFix: data }))
       console.log('Auth Fix:', data)
     } catch (error) {
       console.error('Auth fix failed:', error)
-      setResults(prev => ({ ...prev, authFix: { success: false, error: String(error) } }))
+      setResults((prev: any) => ({ ...prev, authFix: { success: false, error: String(error) } }))
     }
 
     setCurrentStep(null)
@@ -66,11 +66,11 @@ export default function DebugSchemaPage() {
       })
 
       const data = await response.json()
-      setResults(prev => ({ ...prev, workflowTest: data }))
+      setResults((prev: any) => ({ ...prev, workflowTest: data }))
       console.log('Workflow Test:', data)
     } catch (error) {
       console.error('Workflow test failed:', error)
-      setResults(prev => ({ ...prev, workflowTest: { success: false, error: String(error) } }))
+      setResults((prev: any) => ({ ...prev, workflowTest: { success: false, error: String(error) } }))
     }
 
     setCurrentStep(null)

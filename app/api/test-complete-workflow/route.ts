@@ -8,11 +8,11 @@ export async function POST() {
     console.log('🧪 Testing complete workflow...');
 
     const results = {
-      schema_tests: {},
-      auth_tests: {},
-      patient_tests: {},
-      workflow_tests: {},
-      errors: [],
+      schema_tests: {} as any,
+      auth_tests: {} as any,
+      patient_tests: {} as any,
+      workflow_tests: {} as any,
+      errors: [] as string[],
       success: true
     };
 

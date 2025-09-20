@@ -89,7 +89,7 @@ export default async function PatientVerifyPage({ params }: PatientVerifyPagePro
                     <span className="font-semibold text-primary">
                       {(patient.fullName || patient.full_name || 'Unknown User')
                         .split(' ')
-                        .map(name => name[0])
+                        .map((name: string) => name[0])
                         .join('')
                         .toUpperCase()}
                     </span>

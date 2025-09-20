@@ -25,9 +25,9 @@ export async function POST() {
     console.log('✅ Found dentists in database:', dentists?.length || 0);
     const results = {
       dentists: dentists || [],
-      created: [],
-      updated: [],
-      errors: []
+      created: [] as string[],
+      updated: [] as string[],
+      errors: [] as string[]
     };
 
     // Check existing auth users
