@@ -5,7 +5,33 @@ async function getUserRole(supabase: any, userId: string): Promise<{ role: strin
   console.log('🔍 [MIDDLEWARE] Checking user role for ID:', userId)
 
   try {
-    // TEMPORARY: Use service role to bypass RLS until database fix is applied
+    // Check if service role key is available
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.log('⚠️ [MIDDLEWARE] Service role key not available, using regular client')
+      // Fall back to regular client if service role not available
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('role, status')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        if (error.code !== 'PGRST116') {
+          console.error('🚨 [MIDDLEWARE] Error querying profiles table:', error)
+        }
+        return null
+      }
+
+      if (!profile) {
+        console.log('❌ [MIDDLEWARE] No profile found for user')
+        return null
+      }
+
+      console.log('✅ [MIDDLEWARE] Found user role:', profile.role, 'with status:', profile.status)
+      return { role: profile.role, status: profile.status }
+    }
+
+    // Use service role to bypass RLS when available
     const serviceSupabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -49,34 +75,41 @@ async function getUserRole(supabase: any, userId: string): Promise<{ role: strin
 }
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  try {
+    let supabaseResponse = NextResponse.next({
+      request,
+    })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
+    // Check if required environment variables are available
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('🚨 [MIDDLEWARE] Missing required Supabase environment variables')
+      return supabaseResponse
     }
-  )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({
+              request,
+            })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
 
@@ -132,7 +165,14 @@ export async function middleware(request: NextRequest) {
     // If user is pending, let them stay on login page
   }
 
-  return supabaseResponse
+    return supabaseResponse
+  } catch (error) {
+    console.error('🚨 [MIDDLEWARE] Unhandled error in middleware:', error)
+    // Return a basic NextResponse to prevent middleware failure
+    return NextResponse.next({
+      request,
+    })
+  }
 }
 
 function getRoleBasedRedirect(role: string): string {
