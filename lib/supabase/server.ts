@@ -34,6 +34,12 @@ export async function createServiceClient() {
   console.log('🔧 [SERVICE CLIENT] URL exists:', !!process.env.NEXT_PUBLIC_SUPABASE_URL)
   console.log('🔧 [SERVICE CLIENT] Service key exists:', !!process.env.SUPABASE_SERVICE_ROLE_KEY)
 
+  // If service role key is not available, fall back to regular client
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.log('⚠️ [SERVICE CLIENT] Service role key not available, falling back to regular client')
+    return createClient()
+  }
+
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
