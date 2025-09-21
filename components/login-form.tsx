@@ -5,6 +5,7 @@ import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { EndoflowLogo } from "@/components/ui/endoflow-logo"
 
 interface LoginFormProps {
   onLogin?: (email: string, password: string) => Promise<void>
@@ -27,13 +28,9 @@ export function LoginForm({ onLogin, isLoading = false, error, onForgotPassword 
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg border-0 bg-card">
       <CardHeader className="space-y-4 text-center pb-6">
-        <div className="flex items-center justify-center space-x-3">
-          <img
-            src="/endoflow-logo.png"
-            alt="Endoflow"
-            className="w-10 h-10 object-contain"
-          />
-          <CardTitle className="text-2xl font-bold text-primary">ENDOFLOW</CardTitle>
+        <div className="flex items-center justify-center space-x-4">
+          <EndoflowLogo size="xl" showText={false} />
+          <CardTitle className="text-3xl font-bold text-primary">ENDOFLOW</CardTitle>
         </div>
         <CardDescription className="text-base text-muted-foreground">Clinic Portal</CardDescription>
       </CardHeader>

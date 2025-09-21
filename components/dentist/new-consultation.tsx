@@ -27,9 +27,6 @@ interface Patient {
   phone: string
   date_of_birth: string
   medical_history_summary?: string
-  profiles?: {
-    status: string
-  }
 }
 
 interface ConsultationData {
@@ -135,62 +132,24 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
     setIsLoading(true)
     try {
       const supabase = createClient()
+      
+      // Simple direct query to patients table like the working implementation
+      const { data, error } = await supabase
+        .schema('api')
+        .from('patients')
+        .select('*')
+        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
+        .limit(10)
 
-      // Add some debugging
-      console.log('Searching for patients with term:', searchTerm)
-
-      // Get active patients with their profiles
-      const { data: activeProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, full_name, status')
-        .eq('role', 'patient')
-        .eq('status', 'active')
-
-      if (profilesError) {
-        console.error('Error fetching active profiles:', profilesError)
-        throw profilesError
-      }
-
-      if (!activeProfiles || activeProfiles.length === 0) {
+      if (error) {
+        console.error('Error searching patients:', error)
         setPatients([])
         return
       }
 
-      // Get patient details for active profiles
-      const { data: patientData, error: patientsError } = await supabase
-        .schema('api')
-        .from('patients')
-        .select('*')
-        .in('id', activeProfiles.map(p => p.id))
-        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
-        .limit(10)
-
-      if (patientsError) {
-        console.error('Error fetching patient data:', patientsError)
-        throw patientsError
-      }
-
-      // Combine patient data with profile status
-      const patientsWithProfiles = (patientData || []).map(patient => {
-        const profile = activeProfiles.find(p => p.id === patient.id)
-        return {
-          ...patient,
-          profiles: {
-            status: profile?.status || 'active'
-          }
-        }
-      })
-
-      console.log('Query result:', { data: patientsWithProfiles })
-      setPatients(patientsWithProfiles)
+      setPatients(data || [])
     } catch (error) {
-      // Better error logging to handle cases where error object is not properly serializable
-      console.error('Error searching patients:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        name: error instanceof Error ? error.name : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      })
+      console.error('Error searching patients:', error)
       setPatients([])
     } finally {
       setIsLoading(false)
@@ -201,45 +160,23 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
     try {
       const supabase = createClient()
 
-      // Get patient profile first
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('id, full_name, status')
-        .eq('id', patientId)
-        .eq('role', 'patient')
-        .single()
-
-      if (profileError) throw profileError
-
-      // Get patient details
-      const { data: patientData, error: patientError } = await supabase
+      // Simple direct query to get patient data
+      const { data, error } = await supabase
         .schema('api')
         .from('patients')
         .select('*')
         .eq('id', patientId)
         .single()
 
-      if (patientError) throw patientError
+      if (error) throw error
 
-      if (patientData) {
-        const patientWithProfile = {
-          ...patientData,
-          profiles: {
-            status: profile?.status || 'active'
-          }
-        }
-        setSelectedPatient(patientWithProfile)
-        setConsultationData(prev => ({ ...prev, patientId: patientData.id }))
-        onPatientSelect?.(patientWithProfile)
+      if (data) {
+        setSelectedPatient(data)
+        setConsultationData(prev => ({ ...prev, patientId: data.id }))
+        onPatientSelect?.(data)
       }
     } catch (error) {
-      // Better error logging to handle cases where error object is not properly serializable
-      console.error('Error loading patient:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        name: error instanceof Error ? error.name : 'Unknown',
-        stack: error instanceof Error ? error.stack : undefined,
-        error: error
-      })
+      console.error('Error loading patient:', error)
     }
   }
 
@@ -386,7 +323,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
                           {getPatientAge(patient.date_of_birth)} years, {patient.email?.includes('male') ? 'Male' : 'Female'}
                         </p>
                         <Badge variant="outline" className="text-xs">
-                          {patient.profiles?.status || 'active'}
+                          Active
                         </Badge>
                       </div>
                     </div>
@@ -437,7 +374,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
             <Save className="w-4 h-4 mr-2" />
             Save Draft
           </Button>
-          <Button onClick={() => saveConsultation(false)} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => saveConsultation(false)} className="bg-teal-600 hover:bg-teal-700">
             <Send className="w-4 h-4 mr-2" />
             Complete Consultation
           </Button>
@@ -445,7 +382,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
       </div>
 
       {/* Patient Info Bar */}
-      <Card className="border-l-4 border-l-blue-600">
+      <Card className="border-l-4 border-l-teal-600">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -476,7 +413,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600">Pain Assessment</CardTitle>
+                  <CardTitle className="text-teal-600">Pain Assessment</CardTitle>
                   {expandedSections.painAssessment ? <ChevronUp /> : <ChevronDown />}
                 </div>
               </CardHeader>
@@ -554,7 +491,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600">Clinical Examination</CardTitle>
+                  <CardTitle className="text-teal-600">Clinical Examination</CardTitle>
                   {expandedSections.clinicalExamination ? <ChevronUp /> : <ChevronDown />}
                 </div>
               </CardHeader>
@@ -612,7 +549,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600">Investigations</CardTitle>
+                  <CardTitle className="text-teal-600">Investigations</CardTitle>
                   {expandedSections.investigations ? <ChevronUp /> : <ChevronDown />}
                 </div>
               </CardHeader>
@@ -671,7 +608,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
             <CollapsibleTrigger asChild>
               <CardHeader className="cursor-pointer hover:bg-gray-50">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-blue-600">Diagnosis and Treatment Plan</CardTitle>
+                  <CardTitle className="text-teal-600">Diagnosis and Treatment Plan</CardTitle>
                   {expandedSections.diagnosisTreatment ? <ChevronUp /> : <ChevronDown />}
                 </div>
               </CardHeader>
@@ -736,7 +673,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
         {/* Additional Notes */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-blue-600">Additional Notes</CardTitle>
+            <CardTitle className="text-teal-600">Additional Notes</CardTitle>
           </CardHeader>
           <CardContent>
             <Textarea
@@ -755,7 +692,7 @@ export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsu
           <Save className="w-4 h-4 mr-2" />
           Save Draft
         </Button>
-        <Button onClick={() => saveConsultation(false)} className="bg-blue-600 hover:bg-blue-700">
+        <Button onClick={() => saveConsultation(false)} className="bg-teal-600 hover:bg-teal-700">
           <Send className="w-4 h-4 mr-2" />
           Complete Consultation
         </Button>

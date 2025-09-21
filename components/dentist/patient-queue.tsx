@@ -137,7 +137,7 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'scheduled': return 'bg-teal-100 text-teal-800 border-teal-200'
       case 'in_progress': return 'bg-green-100 text-green-800 border-green-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
@@ -167,7 +167,7 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
 
   const getDateColor = (date: string) => {
     const appointmentDate = parseISO(date)
-    if (isToday(appointmentDate)) return 'text-blue-600 font-medium'
+    if (isToday(appointmentDate)) return 'text-teal-600 font-medium'
     if (isPast(appointmentDate)) return 'text-gray-500'
     return 'text-gray-700'
   }
@@ -199,7 +199,7 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-600" />
+            <Users className="w-5 h-5 text-teal-600" />
             Patient Queue Management
           </CardTitle>
           <p className="text-sm text-gray-600">
@@ -208,14 +208,14 @@ export function DentistPatientQueue({ dentistId, onRefreshStats, onSelectPatient
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="p-4 bg-teal-50 rounded-lg border border-teal-200">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Calendar className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-blue-700">Today's Patients</p>
-                  <p className="text-xl font-bold text-blue-900">{todayCount}</p>
+                  <p className="text-sm text-teal-700">Today's Patients</p>
+                  <p className="text-xl font-bold text-teal-900">{todayCount}</p>
                 </div>
               </div>
             </div>

@@ -287,23 +287,23 @@ function PatientDashboard({
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50">
       <div className="flex flex-col h-screen">
-        <header className="bg-card border-b border-border p-4 tracking-normal">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
-                <Image
-                  src="/endoflow-logo.png"
-                  alt="ENDOFLOW Logo"
-                  width={32}
-                  height={32}
-                  className="object-contain w-full h-full"
-                  style={{ filter: "drop-shadow(none)" }}
-                />
-              </div>
-              <h1 className="font-semibold text-primary text-lg">ENDOFLOW</h1>
+      <header className="bg-white/90 backdrop-blur-sm border-b border-teal-100/50 p-4 tracking-normal shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center">
+              <Image
+                src="/endoflow-logo.svg"
+                alt="ENDOFLOW Logo"
+                width={32}
+                height={32}
+                className="object-contain w-full h-full"
+                style={{ filter: "drop-shadow(none)" }}
+              />
             </div>
+            <h1 className="font-semibold text-teal-700 text-lg">ENDOFLOW</h1>
+          </div>
 
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-foreground hidden sm:block">

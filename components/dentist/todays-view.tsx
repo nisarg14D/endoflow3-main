@@ -110,7 +110,7 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'scheduled': return 'bg-teal-100 text-teal-800 border-teal-200'
       case 'in_progress': return 'bg-green-100 text-green-800 border-green-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
@@ -186,22 +186,22 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
   return (
     <div className="space-y-6">
       {/* Current Status Card */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+      <Card className="bg-gradient-to-r from-teal-50 to-cyan-50 border-teal-200">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold text-blue-900">
+              <h3 className="text-lg font-semibold text-teal-900">
                 {format(new Date(), 'EEEE, MMMM d, yyyy')}
               </h3>
-              <p className="text-blue-600">
+              <p className="text-teal-600">
                 {format(currentTime, 'h:mm a')} • {todaysAppointments.length} appointments today
               </p>
             </div>
 
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-900">{completedCount}</div>
-                <div className="text-sm text-blue-600">Completed</div>
+                <div className="text-2xl font-bold text-teal-900">{completedCount}</div>
+                <div className="text-sm text-teal-600">Completed</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-700">{inProgressCount}</div>
@@ -215,7 +215,7 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
           </div>
 
           {currentAppointment && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-blue-200">
+            <div className="mt-4 p-4 bg-white rounded-lg border border-teal-200">
               <div className="flex items-center gap-3">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div>
@@ -238,7 +238,7 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-blue-600" />
+              <Clock className="w-5 h-5 text-teal-600" />
               Today's Schedule
             </CardTitle>
           </CardHeader>
@@ -259,14 +259,14 @@ export function DentistTodaysView({ dentistId, onRefreshStats }: TodaysViewProps
                     key={appointment.id}
                     className={`p-4 border rounded-lg transition-all ${
                       isCurrent ? 'border-green-300 bg-green-50 shadow-md' :
-                      isNext ? 'border-blue-300 bg-blue-50' :
+                      isNext ? 'border-teal-300 bg-teal-50' :
                       'border-gray-200 hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <Avatar className="w-10 h-10">
-                          <AvatarFallback className="bg-blue-100 text-blue-600">
+                          <AvatarFallback className="bg-teal-100 text-teal-600">
                             {appointment.patients?.first_name?.[0]}{appointment.patients?.last_name?.[0]}
                           </AvatarFallback>
                         </Avatar>

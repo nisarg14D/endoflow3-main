@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { EndoflowLogoCompact } from '@/components/ui/endoflow-logo'
+import { EndoflowLogoCompact, EndoflowLogo } from '@/components/ui/endoflow-logo'
 import {
   Home,
   Calendar,
@@ -70,8 +70,11 @@ export default function AssistantLayout({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo Section */}
-            <div className="flex items-center gap-3">
-              <EndoflowLogoCompact size="md" />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <EndoflowLogo size="2xl" showText={false} />
+                <span className="text-2xl font-semibold text-teal-700">ENDOFLOW</span>
+              </div>
               <div className="hidden sm:flex items-center">
                 <Badge variant="secondary" className="bg-teal-100 text-teal-800 border-teal-200">
                   Assistant Portal
@@ -80,21 +83,41 @@ export default function AssistantLayout({
             </div>
 
             {/* Center Navigation - V0 Style */}
-            <nav className="hidden lg:flex items-center space-x-1">
+            <nav className="hidden xl:flex items-center space-x-1">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={`
-                    flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                    flex items-center gap-1 px-2 py-2 rounded-lg text-xs font-medium transition-all duration-200
                     ${item.current
                       ? 'bg-teal-100 text-teal-700 shadow-sm border border-teal-200'
                       : 'text-gray-600 hover:text-teal-700 hover:bg-teal-50/50'
                     }
                   `}
                 >
-                  <item.icon className="h-4 w-4" />
-                  {item.name}
+                  <item.icon className="h-3 w-3" />
+                  <span className="hidden 2xl:inline">{item.name}</span>
+                  <span className="xl:inline 2xl:hidden">{item.name.split(' ')[0]}</span>
+                </Link>
+              ))}
+            </nav>
+            
+            {/* Large screens navigation - show on lg but hide on xl */}
+            <nav className="hidden lg:flex xl:hidden items-center space-x-1">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={`
+                    flex items-center gap-1 px-2 py-2 rounded-lg text-xs font-medium transition-all duration-200
+                    ${item.current
+                      ? 'bg-teal-100 text-teal-700 shadow-sm border border-teal-200'
+                      : 'text-gray-600 hover:text-teal-700 hover:bg-teal-50/50'
+                    }
+                  `}
+                >
+                  <item.icon className="h-3 w-3" />
                 </Link>
               ))}
             </nav>

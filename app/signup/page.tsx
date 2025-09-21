@@ -3,6 +3,7 @@
 import { PatientRegistrationForm } from "@/components/patient-registration-form-simple"
 import { patientSignup } from "@/lib/actions/patient-signup"
 import { useState } from "react"
+import { EndoflowLogo } from "@/components/ui/endoflow-logo"
 
 export default function SignupPage() {
   const [error, setError] = useState("")
@@ -13,11 +14,7 @@ export default function SignupPage() {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
-            <img
-              src="/endoflow-logo.png"
-              alt="Endoflow"
-              className="w-12 h-12 object-contain"
-            />
+            <EndoflowLogo size="2xl" showText={false} />
             <h1 className="text-3xl font-bold text-gray-900">ENDOFLOW</h1>
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Join ENDOFLOW</h2>

@@ -57,6 +57,7 @@ import {
 } from "@/lib/actions/patient"
 import { logout } from "@/lib/actions/auth"
 import { createClient } from '@/lib/supabase/client'
+import { EndoflowLogo } from "@/components/ui/endoflow-logo"
 
 interface PatientData {
   id: string
@@ -251,7 +252,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       <div className="space-y-4 pb-20">
         {/* Next Appointment Card */}
         {nextAppointment && (
-          <Card className="bg-white border border-gray-100 shadow-sm">
+          <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-teal-600 flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
@@ -260,17 +261,17 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
             </CardHeader>
             <CardContent className="pt-0">
               <div className="space-y-2">
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-teal-700">
                   <Clock className="w-4 h-4" />
                   <span className="text-sm">
                     {new Date(nextAppointment.scheduled_date).toLocaleDateString()} at {nextAppointment.scheduled_time}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
+                <div className="flex items-center gap-2 text-teal-700">
                   <User className="w-4 h-4" />
                   <span className="text-sm">Dr. {nextAppointment.dentist_name || 'TBD'}</span>
                 </div>
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="secondary" className="text-xs bg-teal-100 text-teal-800">
                   {nextAppointment.appointment_type}
                 </Badge>
               </div>
@@ -281,29 +282,29 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
           <Card
-            className="bg-white border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm cursor-pointer hover:shadow-lg hover:bg-teal-50/50 transition-all duration-200"
             onClick={() => setShowBookingForm(true)}
           >
             <CardContent className="p-6 text-center">
               <Calendar className="w-8 h-8 mx-auto mb-2 text-teal-600" />
-              <p className="text-sm font-medium text-gray-700">Book Appointment</p>
+              <p className="text-sm font-medium text-teal-700">Book Appointment</p>
             </CardContent>
           </Card>
           <Card
-            className="bg-white border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+            className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm cursor-pointer hover:shadow-lg hover:bg-teal-50/50 transition-all duration-200"
             onClick={() => setActiveTab("file")}
           >
             <CardContent className="p-6 text-center">
-              <FileText className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-              <p className="text-sm font-medium text-gray-700">View Records</p>
+              <FileText className="w-8 h-8 mx-auto mb-2 text-teal-600" />
+              <p className="text-sm font-medium text-teal-700">View Records</p>
             </CardContent>
           </Card>
         </div>
 
         {/* Recent Activity */}
-        <Card className="bg-white border border-gray-100 shadow-sm">
+        <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-700">Recent Activity</CardTitle>
+            <CardTitle className="text-sm font-medium text-teal-700">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -325,10 +326,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                     <div key={appointment.id} className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-teal-500 rounded-full mt-2 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-teal-700">
                           Appointment: {appointment.appointment_type}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-teal-500">
                           {new Date(appointment.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -338,10 +339,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                     <div key={message.id} className="flex items-start gap-3">
                       <div className="w-2 h-2 bg-teal-500 rounded-full mt-2 flex-shrink-0" />
                       <div className="flex-1">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-teal-700">
                           {message.sender_type === 'patient' ? 'You sent a message' : 'New message received'}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-teal-500">
                           {new Date(message.created_at).toLocaleDateString()}
                         </p>
                       </div>
@@ -349,7 +350,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                   ))}
                 </>
               ) : (
-                <p className="text-sm text-gray-500 text-center py-4">No recent activity</p>
+                <p className="text-sm text-teal-500 text-center py-4">No recent activity</p>
               )}
             </div>
           </CardContent>
@@ -366,7 +367,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           variant="outline"
           size="sm"
           onClick={handleCallClinic}
-          className="flex-1 flex items-center gap-2"
+          className="flex-1 flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
         >
           <Phone className="w-4 h-4" />
           Call
@@ -402,10 +403,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       </AlertDialog>
 
       {/* Chat Section */}
-      <Card className="bg-white border border-gray-100 shadow-sm">
+      <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
-            <MessageCircle className="w-4 h-4" />
+          <CardTitle className="text-sm font-medium text-teal-700 flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-teal-600" />
             Chat with Your Care Team
           </CardTitle>
         </CardHeader>
@@ -415,7 +416,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
-                    <div className="h-16 bg-gray-200 rounded-lg mb-2"></div>
+                    <div className="h-16 bg-teal-100 rounded-lg mb-2"></div>
                   </div>
                 ))}
               </div>
@@ -426,19 +427,19 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                   className={`p-3 rounded-lg max-w-[80%] ${
                     message.sender_type === 'patient'
                       ? "ml-auto bg-teal-600 text-white"
-                      : "bg-gray-100 text-gray-800"
+                      : "bg-teal-50 text-teal-800 border border-teal-100"
                   }`}
                 >
                   <p className="text-sm">{message.content}</p>
                   <p className={`text-xs mt-1 ${
-                    message.sender_type === 'patient' ? "text-teal-100" : "text-gray-600"
+                    message.sender_type === 'patient' ? "text-teal-100" : "text-teal-600"
                   }`}>
                     {message.sender_name || (message.sender_type === 'patient' ? 'You' : 'Staff')} • {new Date(message.created_at).toLocaleString()}
                   </p>
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-500 text-center py-8">No messages yet. Start a conversation!</p>
+              <p className="text-sm text-teal-500 text-center py-8">No messages yet. Start a conversation!</p>
             )}
           </div>
 
@@ -448,7 +449,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder="Type your message..."
-              className="flex-1 bg-white text-gray-900 placeholder:text-gray-500 border-gray-300"
+              className="flex-1 bg-white text-teal-900 placeholder:text-teal-500 border-teal-200 focus:border-teal-400"
               onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             />
             <Button onClick={handleSendMessage} size="sm" className="bg-teal-600 hover:bg-teal-700">
@@ -464,7 +465,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
     return (
       <div className="space-y-4 pb-20">
         {/* Book New Appointment Button */}
-        <Card className="bg-white border border-gray-100 shadow-sm">
+        <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <CardContent className="p-4">
             <Button
               onClick={() => setShowBookingForm(true)}
@@ -496,9 +497,9 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
 
   const renderFileTab = () => (
     <div className="space-y-4 pb-20">
-      <Card className="bg-white border border-gray-100 shadow-sm">
+      <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-sm font-medium text-gray-700 flex items-center gap-2">
+          <CardTitle className="text-sm font-medium text-teal-700 flex items-center gap-2">
             <User className="w-4 h-4 text-teal-600" />
             My Profile
           </CardTitle>
@@ -507,21 +508,21 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           <div className="grid grid-cols-1 gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs text-gray-500">First Name</Label>
-                <p className="text-sm font-medium">{patientData.name.split(" ")[0]}</p>
+                <Label className="text-xs text-teal-500">First Name</Label>
+                <p className="text-sm font-medium text-teal-700">{patientData.name.split(" ")[0]}</p>
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Last Name</Label>
-                <p className="text-sm font-medium">{patientData.name.split(" ")[1] || ""}</p>
+                <Label className="text-xs text-teal-500">Last Name</Label>
+                <p className="text-sm font-medium text-teal-700">{patientData.name.split(" ")[1] || ""}</p>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Email</Label>
-              <p className="text-sm font-medium">{patientData.email}</p>
+              <Label className="text-xs text-teal-500">Email</Label>
+              <p className="text-sm font-medium text-teal-700">{patientData.email}</p>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Phone</Label>
-              <p className="text-sm font-medium">{patientData.phone}</p>
+              <Label className="text-xs text-teal-500">Phone</Label>
+              <p className="text-sm font-medium text-teal-700">{patientData.phone}</p>
             </div>
           </div>
         </CardContent>
@@ -538,27 +539,27 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
 
       {/* Treatment History */}
       {treatmentHistory.length > 0 && (
-        <Card className="bg-white border border-gray-100 shadow-sm">
+        <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-gray-700">Treatment History</CardTitle>
+            <CardTitle className="text-sm font-medium text-teal-700">Treatment History</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {treatmentHistory.slice(0, 3).map((treatment) => (
-                <div key={treatment.id} className="p-3 border border-gray-200 rounded-lg">
+                <div key={treatment.id} className="p-3 border border-teal-100 bg-teal-50/30 rounded-lg">
                   <div className="flex justify-between items-start">
                     <div className="space-y-1">
-                      <p className="font-medium text-sm">{treatment.treatment_type}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="font-medium text-sm text-teal-800">{treatment.treatment_type}</p>
+                      <p className="text-xs text-teal-600">
                         {new Date(treatment.treatment_date).toLocaleDateString()}
                       </p>
-                      <p className="text-xs text-gray-500">Dr. {treatment.dentist_name}</p>
+                      <p className="text-xs text-teal-600">Dr. {treatment.dentist_name}</p>
                     </div>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => handleViewNotes(treatment.appointment_id)}
-                      className="text-xs"
+                      className="text-xs border-teal-200 text-teal-700 hover:bg-teal-50"
                     >
                       View Details
                     </Button>
@@ -575,15 +576,15 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   const renderLibraryTab = () => (
     <div className="space-y-6 pb-20">
       <div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Educational Library</h2>
-        <p className="text-gray-600 mb-6">Learn about dental health and procedures</p>
+        <h2 className="text-xl font-bold text-teal-800 mb-2">Educational Library</h2>
+        <p className="text-teal-600 mb-6">Learn about dental health and procedures</p>
 
         <div className="relative mb-8">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-teal-400" />
           <input
             type="text"
             placeholder="Search articles, videos, guides..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            className="w-full pl-10 pr-4 py-3 border border-teal-200 rounded-lg bg-white text-teal-900 placeholder:text-teal-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
           />
         </div>
       </div>
@@ -591,23 +592,23 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       <div className="space-y-4">
         <div className="flex items-center gap-2 mb-4">
           <BookOpen className="w-5 h-5 text-teal-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Featured Content</h3>
+          <h3 className="text-lg font-semibold text-teal-800">Featured Content</h3>
         </div>
 
-        <Card className="p-6 border-l-4 border-l-teal-500 bg-white shadow-sm">
+        <Card className="p-6 border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <Video className="w-8 h-8 text-teal-600" />
             </div>
             <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 mb-2">
+              <h4 className="font-semibold text-teal-800 mb-2">
                 Root Canal Treatment: What to Expect
               </h4>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-teal-600 mb-3">
                 A comprehensive guide to understanding root canal procedures and recovery.
               </p>
               <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-500">8 min read</span>
+                <span className="text-xs text-teal-500">8 min read</span>
                 <button className="flex items-center gap-2 text-sm text-teal-600 hover:underline">
                   <Play className="w-4 h-4" />
                   Watch
@@ -617,18 +618,18 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           </div>
         </Card>
 
-        <Card className="p-6 border-l-4 border-l-teal-500 bg-white shadow-sm">
+        <Card className="p-6 border-l-4 border-l-teal-500 bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <div className="flex items-start gap-4">
             <div className="w-16 h-16 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
               <Video className="w-8 h-8 text-teal-600" />
             </div>
             <div className="flex-1">
-              <h4 className="font-semibold text-gray-900 mb-2">Preparing for Your Dental Cleaning</h4>
-              <p className="text-sm text-gray-600 mb-3">
+              <h4 className="font-semibold text-teal-800 mb-2">Preparing for Your Dental Cleaning</h4>
+              <p className="text-sm text-teal-600 mb-3">
                 Essential tips and what to expect during your upcoming cleaning appointment.
               </p>
               <div className="flex items-center gap-4">
-                <span className="text-xs text-gray-500">5 min read</span>
+                <span className="text-xs text-teal-500">5 min read</span>
                 <button className="flex items-center gap-2 text-sm text-teal-600 hover:underline">
                   <Play className="w-4 h-4" />
                   Watch
@@ -667,21 +668,21 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         ].map((resource) => (
           <Card
             key={resource.id}
-            className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer bg-white"
+            className="overflow-hidden hover:shadow-lg transition-all cursor-pointer bg-white/80 backdrop-blur-sm border border-teal-100"
           >
-            <div className="aspect-video w-full overflow-hidden bg-gray-100 flex items-center justify-center">
-              <Video className="w-8 h-8 text-gray-400" />
+            <div className="aspect-video w-full overflow-hidden bg-teal-50 flex items-center justify-center">
+              <Video className="w-8 h-8 text-teal-500" />
             </div>
             <CardContent className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">{resource.title}</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">{resource.description}</p>
+              <h3 className="font-semibold text-teal-800 mb-2">{resource.title}</h3>
+              <p className="text-teal-600 text-sm leading-relaxed">{resource.description}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="mt-8">
-        <h3 className="text-lg font-semibold mb-4 text-gray-900">Browse by Category</h3>
+        <h3 className="text-lg font-semibold mb-4 text-teal-800">Browse by Category</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
             { name: "Prevention", icon: "🛡️" },
@@ -691,10 +692,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           ].map((category) => (
             <Card
               key={category.name}
-              className="p-4 text-center hover:shadow-md transition-shadow cursor-pointer bg-white"
+              className="p-4 text-center hover:shadow-lg transition-all cursor-pointer bg-white/80 backdrop-blur-sm border border-teal-100 hover:bg-teal-50/50"
             >
               <div className="text-2xl mb-2">{category.icon}</div>
-              <p className="font-medium text-sm text-gray-900">{category.name}</p>
+              <p className="font-medium text-sm text-teal-800">{category.name}</p>
             </Card>
           ))}
         </div>
@@ -720,21 +721,17 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
+      <header className="bg-white/90 backdrop-blur-sm border-b border-teal-100/50 px-4 py-3 sticky top-0 z-50 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img
-              src="/endoflow-logo.png"
-              alt="Endoflow"
-              className="w-8 h-8 object-contain"
-            />
-            <h1 className="text-lg font-semibold text-gray-900">ENDOFLOW</h1>
+            <EndoflowLogo size="md" showText={false} />
+            <h1 className="text-lg font-semibold text-teal-700">ENDOFLOW</h1>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 hidden sm:block">
+            <span className="text-sm font-medium text-teal-700 hidden sm:block">
               {patientData.name}
             </span>
 
@@ -747,13 +744,13 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
-                className="p-1"
+                className="p-1 hover:bg-teal-50"
               >
-                <User className="w-5 h-5 text-gray-600" />
+                <User className="w-5 h-5 text-teal-600" />
               </Button>
 
               {showProfileMenu && (
-                <div className="absolute right-0 top-10 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                <div className="absolute right-0 top-10 w-48 bg-white border border-teal-200 rounded-lg shadow-lg z-50">
                   <div className="p-2">
                     <Button
                       variant="ghost"
@@ -776,10 +773,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       <main className="px-4 py-4">
         {/* Welcome Message */}
         <div className="mb-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-1">
+          <h2 className="text-xl font-semibold text-teal-800 mb-1">
             Welcome, {patientData.name.split(" ")[0]}!
           </h2>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-teal-600">
             How can we help you today?
           </p>
         </div>
@@ -789,7 +786,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-teal-100 px-2 py-2 shadow-lg">
         <div className="flex justify-around">
           {tabs.map((tab) => {
             const Icon = tab.icon
@@ -801,7 +798,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                 className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
                   isActive
                     ? "text-teal-600 bg-teal-50"
-                    : "text-gray-500 hover:text-gray-700"
+                    : "text-teal-400 hover:text-teal-600 hover:bg-teal-50/50"
                 }`}
               >
                 <Icon className="w-5 h-5" />
@@ -831,33 +828,33 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       {/* Reschedule Form Modal */}
       {showRescheduleForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md bg-white/95 backdrop-blur-sm border-teal-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Reschedule Appointment</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setShowRescheduleForm(false)}>
-                  <X className="w-4 h-4" />
+                <CardTitle className="text-lg text-teal-800">Reschedule Appointment</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowRescheduleForm(false)} className="hover:bg-teal-50">
+                  <X className="w-4 h-4 text-teal-600" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Preferred Date</Label>
+                  <Label className="text-sm font-medium text-teal-700 mb-2 block">Preferred Date</Label>
                   <Input
                     type="date"
                     value={rescheduleForm.preferredDate}
                     onChange={(e) => setRescheduleForm({...rescheduleForm, preferredDate: e.target.value})}
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full"
+                    className="w-full border-teal-200 focus:border-teal-400"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Preferred Time</Label>
+                  <Label className="text-sm font-medium text-teal-700 mb-2 block">Preferred Time</Label>
                   <select
                     value={rescheduleForm.preferredTime}
                     onChange={(e) => setRescheduleForm({...rescheduleForm, preferredTime: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    className="w-full px-3 py-2 border border-teal-200 rounded-md text-sm text-teal-700 focus:border-teal-400 focus:ring-teal-200"
                   >
                     <option value="">Select time</option>
                     <option value="9:00 AM">9:00 AM</option>
@@ -870,7 +867,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium text-gray-700 mb-2 block">
+                <Label className="text-sm font-medium text-teal-700 mb-2 block">
                   Reason for Rescheduling
                 </Label>
                 <Textarea
@@ -878,6 +875,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
                   onChange={(e) => setRescheduleForm({...rescheduleForm, reason: e.target.value})}
                   placeholder="Please let us know why you need to reschedule..."
                   rows={3}
+                  className="border-teal-200 focus:border-teal-400 placeholder:text-teal-400"
                 />
               </div>
               <Button
@@ -894,45 +892,45 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
       {/* View Notes Modal */}
       {showViewNotes && selectedNotes && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white/95 backdrop-blur-sm border-teal-200">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Clinical Notes</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setShowViewNotes(false)}>
-                  <X className="w-4 h-4" />
+                <CardTitle className="text-lg text-teal-800">Clinical Notes</CardTitle>
+                <Button variant="ghost" size="sm" onClick={() => setShowViewNotes(false)} className="hover:bg-teal-50">
+                  <X className="w-4 h-4 text-teal-600" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4">
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-700 mb-1">Treatment Type</h4>
-                  <p className="text-sm text-gray-600">{selectedNotes.treatment_type}</p>
+                  <h4 className="font-semibold text-sm text-teal-700 mb-1">Treatment Type</h4>
+                  <p className="text-sm text-teal-600">{selectedNotes.treatment_type}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-700 mb-1">Treatment Date</h4>
-                  <p className="text-sm text-gray-600">{new Date(selectedNotes.treatment_date).toLocaleDateString()}</p>
+                  <h4 className="font-semibold text-sm text-teal-700 mb-1">Treatment Date</h4>
+                  <p className="text-sm text-teal-600">{new Date(selectedNotes.treatment_date).toLocaleDateString()}</p>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-sm text-gray-700 mb-1">Dentist</h4>
-                  <p className="text-sm text-gray-600">Dr. {selectedNotes.dentist_name}</p>
+                  <h4 className="font-semibold text-sm text-teal-700 mb-1">Dentist</h4>
+                  <p className="text-sm text-teal-600">Dr. {selectedNotes.dentist_name}</p>
                 </div>
                 {selectedNotes.notes && (
                   <div>
-                    <h4 className="font-semibold text-sm text-gray-700 mb-1">Clinical Notes</h4>
-                    <p className="text-sm text-gray-600">{selectedNotes.notes}</p>
+                    <h4 className="font-semibold text-sm text-teal-700 mb-1">Clinical Notes</h4>
+                    <p className="text-sm text-teal-600">{selectedNotes.notes}</p>
                   </div>
                 )}
                 {selectedNotes.diagnosis && (
                   <div>
-                    <h4 className="font-semibold text-sm text-gray-700 mb-1">Diagnosis</h4>
-                    <p className="text-sm text-gray-600">{selectedNotes.diagnosis}</p>
+                    <h4 className="font-semibold text-sm text-teal-700 mb-1">Diagnosis</h4>
+                    <p className="text-sm text-teal-600">{selectedNotes.diagnosis}</p>
                   </div>
                 )}
                 {selectedNotes.tooth_number && (
                   <div>
-                    <h4 className="font-semibold text-sm text-gray-700 mb-1">Tooth Number</h4>
-                    <p className="text-sm text-gray-600">#{selectedNotes.tooth_number}</p>
+                    <h4 className="font-semibold text-sm text-teal-700 mb-1">Tooth Number</h4>
+                    <p className="text-sm text-teal-600">#{selectedNotes.tooth_number}</p>
                   </div>
                 )}
               </div>

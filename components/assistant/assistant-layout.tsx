@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client';
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { EndoflowLogo } from "@/components/ui/endoflow-logo";
 
 interface AssistantLayoutProps {
   children: React.ReactNode;
@@ -74,15 +75,7 @@ export function AssistantLayout({ children }: AssistantLayoutProps) {
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center">
-              <Image
-                src="/endoflow-logo.png"
-                alt="ENDOFLOW Logo"
-                width={32}
-                height={32}
-                className="object-contain w-full h-full"
-              />
-            </div>
+            <EndoflowLogo size="md" showText={false} />
             <div>
               <h1 className="text-xl font-bold text-teal-600">ENDOFLOW</h1>
               <p className="text-sm text-gray-600">Assistant Portal</p>

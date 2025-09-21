@@ -211,7 +211,7 @@ export function RealtimeAppointments({
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'scheduled': return 'bg-teal-100 text-teal-800 border-teal-200'
       case 'confirmed': return 'bg-green-100 text-green-800 border-green-200'
       case 'in_progress': return 'bg-purple-100 text-purple-800 border-purple-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
@@ -243,7 +243,7 @@ export function RealtimeAppointments({
       {/* Connection Status & Notifications */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Stethoscope className="h-5 w-5 text-blue-600" />
+          <Stethoscope className="h-5 w-5 text-teal-600" />
           <h3 className="text-lg font-semibold">Your Appointments</h3>
           <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} title={isConnected ? 'Connected' : 'Disconnected'} />
         </div>
@@ -258,7 +258,7 @@ export function RealtimeAppointments({
           key={key}
           className={`p-3 rounded-lg border-l-4 ${
             notification.type === 'success' ? 'bg-green-50 border-green-400 text-green-800' :
-            notification.type === 'info' ? 'bg-blue-50 border-blue-400 text-blue-800' :
+            notification.type === 'info' ? 'bg-teal-50 border-teal-400 text-teal-800' :
             'bg-orange-50 border-orange-400 text-orange-800'
           }`}
         >
@@ -273,7 +273,7 @@ export function RealtimeAppointments({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-blue-600" />
+            <Calendar className="h-5 w-5 text-teal-600" />
             Today's Appointments ({todaysAppointments.length})
           </CardTitle>
         </CardHeader>
@@ -294,7 +294,7 @@ export function RealtimeAppointments({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback className="bg-blue-100 text-blue-600">
+                        <AvatarFallback className="bg-teal-100 text-teal-600">
                           {appointment.patients?.first_name?.[0]}{appointment.patients?.last_name?.[0]}
                         </AvatarFallback>
                       </Avatar>

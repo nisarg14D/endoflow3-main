@@ -30,8 +30,10 @@ import {
   getDentistAppointmentsAction,
   updateDentistAppointmentStatus,
   dentistCancelAppointment,
-  dentistRescheduleAppointment
+  dentistRescheduleAppointment,
+  getPatientsForBooking
 } from "@/lib/actions/dentist"
+import { getAppointmentRequestsAction, scheduleAppointmentDirectAction } from "@/lib/actions/appointments"
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns'
 
 interface Appointment {
@@ -143,7 +145,7 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'scheduled': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'scheduled': return 'bg-teal-100 text-teal-800 border-teal-200'
       case 'in_progress': return 'bg-green-100 text-green-800 border-green-200'
       case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'

@@ -1,39 +1,57 @@
 -- Fix infinite recursion in profiles table RLS policies
--- This script will disable RLS temporarily, drop all existing policies, and recreate proper policies
+-- This script will remove problematic policies and create safe ones
 
--- Step 1: Disable RLS on profiles table to allow admin access
-ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+-- First, disable RLS temporarily to view current policies
+ALTER TABLE public.profiles DISABLE ROW LEVEL SECURITY;
 
--- Step 2: Drop all existing policies on profiles table (if any exist)
-DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
-DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
-DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
-DROP POLICY IF EXISTS "Enable insert for authenticated users only" ON profiles;
-DROP POLICY IF EXISTS "Enable select for users based on user_id" ON profiles;
-DROP POLICY IF EXISTS "Enable update for users based on user_id" ON profiles;
-DROP POLICY IF EXISTS "profiles_select_policy" ON profiles;
-DROP POLICY IF EXISTS "profiles_insert_policy" ON profiles;
-DROP POLICY IF EXISTS "profiles_update_policy" ON profiles;
+-- Drop all existing policies to start clean
+DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Staff can view all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Staff can update profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Enable read for authenticated users" ON public.profiles;
+DROP POLICY IF EXISTS "Enable insert for authenticated users" ON public.profiles;
+DROP POLICY IF EXISTS "Enable update for users based on user_id" ON public.profiles;
 
--- Step 3: Re-enable RLS
-ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+-- Re-enable RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
--- Step 4: Create simple, non-recursive policies
--- Allow users to view their own profile
-CREATE POLICY "profiles_select_policy" ON profiles
-    FOR SELECT USING (auth.uid() = id);
+-- Create simple, non-recursive policies
 
--- Allow users to update their own profile
-CREATE POLICY "profiles_update_policy" ON profiles
-    FOR UPDATE USING (auth.uid() = id);
+-- 1. Users can view their own profile
+CREATE POLICY "Users can view own profile" ON public.profiles
+FOR SELECT TO authenticated
+USING (id = auth.uid());
 
--- Allow authenticated users to insert their own profile (for signup)
-CREATE POLICY "profiles_insert_policy" ON profiles
-    FOR INSERT WITH CHECK (auth.uid() = id);
+-- 2. Users can insert their own profile during signup
+CREATE POLICY "Users can insert own profile" ON public.profiles
+FOR INSERT TO authenticated
+WITH CHECK (id = auth.uid());
 
--- Note: We're NOT creating any policy that queries the profiles table within its own condition
--- This avoids the infinite recursion issue
+-- 3. Users can update their own profile
+CREATE POLICY "Users can update own profile" ON public.profiles
+FOR UPDATE TO authenticated
+USING (id = auth.uid())
+WITH CHECK (id = auth.uid());
 
--- Step 5: Grant necessary permissions to authenticated users
-GRANT SELECT, INSERT, UPDATE ON profiles TO authenticated;
-GRANT USAGE ON SCHEMA public TO authenticated;
+-- 4. Staff can view all profiles (using direct role check, not recursive lookup)
+CREATE POLICY "Staff can view all profiles" ON public.profiles
+FOR SELECT TO authenticated
+USING (
+  -- Direct check: if the current user has a specific role
+  id = auth.uid() OR
+  EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE auth.users.id = auth.uid()
+    AND auth.users.email IN (
+      'dr.nisarg@endoflow.com',
+      'dr.pranav@endoflow.com',
+      'assistant@endoflow.com'
+    )
+  )
+);
+
+-- Grant necessary permissions
+GRANT ALL ON public.profiles TO authenticated;
+GRANT ALL ON public.profiles TO service_role;

@@ -41,6 +41,7 @@ import { getCurrentDentist, getTodaysAppointments, getWeekAppointments, getDenti
 import { logout } from "@/lib/actions/auth"
 import { format } from "date-fns"
 import Image from "next/image"
+import { EndoflowLogo } from "@/components/ui/endoflow-logo"
 
 interface DentistData {
   id: string
@@ -217,12 +218,8 @@ export default function DentistDashboard() {
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img
-                src="/endoflow-logo.png"
-                alt="Endoflow"
-                className="w-10 h-10 object-contain"
-              />
-              <h1 className="text-2xl font-bold text-blue-600">ENDOFLOW</h1>
+              <EndoflowLogo size="lg" showText={false} />
+              <h1 className="text-2xl font-bold text-teal-600">ENDOFLOW</h1>
               <span className="text-gray-500">Dental Clinic Management</span>
             </div>
 
@@ -237,8 +234,8 @@ export default function DentistDashboard() {
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
                   className="flex items-center gap-2"
                 >
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Stethoscope className="w-4 h-4 text-blue-600" />
+                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center">
+                    <Stethoscope className="w-4 h-4 text-teal-600" />
                   </div>
                   <div className="text-left">
                     <div className="text-sm font-medium">{dentistData.name}</div>
@@ -294,7 +291,7 @@ export default function DentistDashboard() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                     isActive
-                      ? "border-blue-500 text-blue-600"
+                      ? "border-teal-500 text-teal-600"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                   }`}
                 >
@@ -323,7 +320,7 @@ export default function DentistDashboard() {
                     <Phone className="w-4 h-4 mr-2" />
                     Emergency Contact
                   </Button>
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                     <Plus className="w-4 h-4 mr-2" />
                     New Appointment
                   </Button>
@@ -354,7 +351,7 @@ export default function DentistDashboard() {
                         <p className="text-sm font-medium text-gray-600">Completion Rate</p>
                         <p className="text-3xl font-bold text-gray-900">38%</p>
                         <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                          <div className="bg-blue-600 h-2 rounded-full" style={{width: '38%'}}></div>
+                          <div className="bg-teal-600 h-2 rounded-full" style={{width: '38%'}}></div>
                         </div>
                       </div>
                       <div className="w-8 h-8 text-gray-400">
@@ -430,144 +427,11 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "organizer" && (
-            <div>
-              {/* Page Header */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Appointment Organizer</h1>
-                  <p className="text-gray-500">Manage and schedule patient appointments</p>
-                </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Schedule Appointment
-                </Button>
-              </div>
-
-              {/* Search and Filters */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search appointments by patient or procedure..."
-                      className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>All Status</option>
-                    <option>Scheduled</option>
-                    <option>Completed</option>
-                    <option>Cancelled</option>
-                  </select>
-                  <select className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <option>All Dentists</option>
-                    <option>Dr. Nisarg</option>
-                    <option>Dr. Pranav</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Calendar Section */}
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                {/* Calendar View - Takes 3 columns */}
-                <div className="lg:col-span-3 bg-white rounded-lg border border-gray-200">
-                  {/* Calendar Header */}
-                  <div className="p-4 border-b border-gray-200">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-5 h-5 text-gray-500" />
-                          <span className="font-medium">Calendar View</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        {/* View Toggle */}
-                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                          <button className="px-3 py-1 text-sm font-medium bg-blue-600 text-white rounded-md">
-                            Day
-                          </button>
-                          <button className="px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900">
-                            Week
-                          </button>
-                          <button className="px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-900">
-                            Month
-                          </button>
-                        </div>
-                        <Button variant="outline" size="sm">
-                          Today
-                        </Button>
-                      </div>
-                    </div>
-
-                    {/* Date Navigation */}
-                    <div className="flex items-center justify-between mt-4">
-                      <Button variant="ghost" size="sm">
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <h2 className="text-lg font-semibold">{format(new Date(), 'EEEE, MMMM d, yyyy')}</h2>
-                      <Button variant="ghost" size="sm">
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Time Slots */}
-                  <div className="p-4">
-                    <div className="space-y-2">
-                      {["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"].map((time) => (
-                        <div key={time} className="flex items-center border-b border-gray-100 py-3">
-                          <div className="w-20 text-sm text-gray-500 font-medium">
-                            {time}
-                          </div>
-                          <div className="flex-1 ml-4">
-                            {/* Empty time slot */}
-                            <div className="h-8 bg-gray-50 rounded border-2 border-dashed border-gray-200 hover:border-blue-300 cursor-pointer"></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Sidebar - Takes 1 column */}
-                <div className="space-y-6">
-                  {/* Today's Appointments */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-blue-600" />
-                        Today's Appointments
-                      </CardTitle>
-                      <p className="text-sm text-gray-500">0 appointments scheduled</p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8">
-                        <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-sm">No appointments today</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Upcoming Appointments */}
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-blue-600" />
-                        Upcoming Appointments
-                      </CardTitle>
-                      <p className="text-sm text-gray-500">Next 5 scheduled appointments</p>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-center py-8">
-                        <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500 text-sm">No upcoming appointments</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </div>
+            <DentistAppointmentOrganizer
+              dentistId={dentistData.id}
+              dentistName={dentistData.name}
+              onRefreshStats={loadAppointmentStats}
+            />
           )}
 
           {activeTab === "analysis" && (
@@ -577,7 +441,7 @@ export default function DentistDashboard() {
                   <h1 className="text-2xl font-bold text-gray-900">Clinic Analysis</h1>
                   <p className="text-gray-500">Analytics and performance insights</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                   <TrendingUp className="w-4 h-4 mr-2" />
                   Generate Report
                 </Button>
@@ -599,7 +463,7 @@ export default function DentistDashboard() {
                   <h1 className="text-2xl font-bold text-gray-900">Research Projects</h1>
                   <p className="text-gray-500">Clinical research and data analysis</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 mr-2" />
                   New Project
                 </Button>
@@ -621,7 +485,7 @@ export default function DentistDashboard() {
                   <h1 className="text-2xl font-bold text-gray-900">Templates Manager</h1>
                   <p className="text-gray-500">Clinical documentation templates</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Template
                 </Button>
@@ -643,7 +507,7 @@ export default function DentistDashboard() {
                   <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
                   <p className="text-gray-500">Patient and staff communication</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                   <MessageSquare className="w-4 h-4 mr-2" />
                   New Message
                 </Button>
@@ -665,7 +529,7 @@ export default function DentistDashboard() {
                   <h1 className="text-2xl font-bold text-gray-900">Assistant Tasks</h1>
                   <p className="text-gray-500">Task delegation and workflow management</p>
                 </div>
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Assign Task
                 </Button>

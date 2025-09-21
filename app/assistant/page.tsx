@@ -45,23 +45,17 @@ export default async function AssistantDashboard({ searchParams }: AssistantDash
 
   return (
     <div className="min-h-screen">
-      {/* Hero Section with V0 Design */}
-      <div className="relative bg-gradient-to-r from-teal-600 via-teal-700 to-cyan-600 text-white">
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">
-              Daily Task Hub
-            </h1>
-            <p className="text-teal-100 text-lg max-w-2xl mx-auto">
-              Manage patient registrations, schedule appointments, and coordinate with the dental team
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content with V0 Styling */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Page Title - Left Aligned */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Daily Task Hub
+          </h1>
+          <p className="text-gray-600">
+            Manage patient registrations, schedule appointments, and coordinate with the dental team
+          </p>
+        </div>
       {/* Success/Error Messages */}
       {params.verified === 'success' && (
         <div className="mb-6">
@@ -103,7 +97,7 @@ export default async function AssistantDashboard({ searchParams }: AssistantDash
       )}
 
       {/* Quick Stats - V0 Design */}
-      <div className="mb-8 -mt-6">
+      <div className="mb-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-white/80 backdrop-blur-sm border-teal-200 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">

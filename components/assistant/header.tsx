@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Menu, Calendar, FileText, CheckSquare, UserPlus, Upload, Home, LogOut, Settings } from "lucide-react"
 import { logoutAction } from "@/lib/actions/logout"
+import { EndoflowLogo } from "@/components/ui/endoflow-logo"
 
 const navigationItems = [
   { name: "Home", href: "/assistant", icon: Home },
@@ -24,10 +25,8 @@ export function AssistantHeader() {
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-sm">E</span>
-            </div>
-            <span className="text-xl font-bold text-blue-600">ENDOFLOW</span>
+            <EndoflowLogo size="md" showText={false} />
+            <span className="text-xl font-bold text-teal-600">ENDOFLOW</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-8">
@@ -35,7 +34,7 @@ export function AssistantHeader() {
               <Link
                 key={item.name}
                 href={item.href}
-                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600 transition-colors px-3 py-2 rounded-md hover:bg-blue-50"
+                className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-teal-600 transition-colors px-3 py-2 rounded-md hover:bg-teal-50"
               >
                 <item.icon className="h-4 w-4" />
                 {item.name}

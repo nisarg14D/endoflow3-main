@@ -5,7 +5,14 @@ import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: 'ENDOFLOW - Dental Clinic Management',
-  description: 'AI-powered SaaS application for dental clinics that automates workflows and improves patient care.'
+  description: 'AI-powered SaaS application for dental clinics that automates workflows and improves patient care.',
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '16x16 32x32', type: 'image/x-icon' },
+      { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' }
+    ],
+    apple: '/favicon.svg'
+  }
 };
 
 export const viewport: Viewport = {
