@@ -160,13 +160,7 @@ export async function getPatientFilesAction(patientId: string) {
     const { data: files, error } = await supabase
       .schema('api')
       .from('patient_files')
-      .select(`
-        *,
-        uploader:uploaded_by (
-          id,
-          full_name
-        )
-      `)
+      .select('*')
       .eq('patient_id', patientId)
       .eq('is_archived', false)
       .order('created_at', { ascending: false })
@@ -180,9 +174,46 @@ export async function getPatientFilesAction(patientId: string) {
       return { success: false, error: 'Failed to fetch patient files' }
     }
 
+    // Get uploader information separately since we can't rely on foreign key relationships yet
+    let uploaderData: any[] = []
+    if (files && files.length > 0) {
+      const uploaderIds = [...new Set(files.map(f => f.uploaded_by).filter(Boolean))]
+      if (uploaderIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', uploaderIds)
+        
+        if (!profilesError && profiles) {
+          uploaderData = profiles
+        }
+      }
+    }
+
+    // Map uploader information to files and convert field names to camelCase
+    const filesWithUploaders = files?.map(file => {
+      const uploader = uploaderData.find(u => u.id === file.uploaded_by)
+      return {
+        id: file.id,
+        patientId: file.patient_id,
+        uploadedBy: file.uploaded_by,
+        fileName: file.file_name,
+        originalFileName: file.original_file_name,
+        filePath: file.file_path,
+        fileSize: file.file_size,
+        mimeType: file.mime_type,
+        fileType: file.file_type,
+        description: file.description,
+        isArchived: file.is_archived,
+        createdAt: file.created_at,
+        updatedAt: file.updated_at,
+        uploader: uploader ? { id: uploader.id, full_name: uploader.full_name } : null
+      }
+    }) || []
+
     return {
       success: true,
-      data: files || []
+      data: filesWithUploaders
     }
 
   } catch (error) {

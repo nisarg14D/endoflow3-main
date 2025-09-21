@@ -347,7 +347,16 @@ export function PatientFilesViewer({
                       <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                         <div className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
-                          {format(new Date(file.createdAt), 'MMM d, yyyy')}
+                          {(() => {
+                            try {
+                              if (!file.createdAt) return 'Unknown date'
+                              const date = new Date(file.createdAt)
+                              if (isNaN(date.getTime())) return 'Invalid date'
+                              return format(date, 'MMM d, yyyy')
+                            } catch {
+                              return 'Invalid date'
+                            }
+                          })()}
                         </div>
                         {showUploader && file.uploader && (
                           <div className="flex items-center gap-1">
@@ -477,7 +486,16 @@ export function PatientFilesViewer({
                                       <div className="mt-1 text-gray-600 space-y-1">
                                         <p>Type: {selectedFile.fileType}</p>
                                         <p>Size: {formatFileSize(selectedFile.fileSize)}</p>
-                                        <p>Uploaded: {format(new Date(selectedFile.createdAt), 'PPP')}</p>
+                                        <p>Uploaded: {(() => {
+                                          try {
+                                            if (!selectedFile.createdAt) return 'Unknown date'
+                                            const date = new Date(selectedFile.createdAt)
+                                            if (isNaN(date.getTime())) return 'Invalid date'
+                                            return format(date, 'PPP')
+                                          } catch {
+                                            return 'Invalid date'
+                                          }
+                                        })()}</p>
                                         {selectedFile.uploader && (
                                           <p>By: {selectedFile.uploader.full_name}</p>
                                         )}
