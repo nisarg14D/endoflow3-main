@@ -35,10 +35,12 @@ import { LivePatientManagement } from "@/components/dentist/live-patient-managem
 import { DentistBookingInterface } from "@/components/dentist/booking-interface"
 import { ClinicalCockpit } from "@/components/dentist/clinical-cockpit"
 import { RealtimeAppointments } from "@/components/dentist/realtime-appointments"
-import { NewConsultation } from "@/components/dentist/new-consultation"
+import { EnhancedNewConsultation } from "@/components/dentist/enhanced-new-consultation"
 import { NotificationCenter } from "@/components/notifications/notification-center"
 import { ClinicAnalysis } from "@/components/dentist/clinic-analysis"
 import { ResearchProjects } from "@/components/dentist/research-projects"
+import ResearchAiAssistant from "@/components/dentist/research-ai-assistant"
+import { MessagesChatInterface } from "@/components/dentist/messages-chat-interface"
 import SimpleMessagingInterface from "@/components/dentist/simple-messaging-interface"
 import { getCurrentDentist, getTodaysAppointments, getWeekAppointments, getDentistAppointmentsAction } from "@/lib/actions/dentist"
 import { logout } from "@/lib/actions/auth"
@@ -64,12 +66,14 @@ interface AppointmentStats {
 const navigationTabs = [
   { id: "today", label: "Today's View", icon: Activity },
   { id: "patients", label: "Patients", icon: Users },
-  { id: "consultation", label: "New Consultation", icon: FileText },
+  { id: "consultation", label: "Enhanced Consultation", icon: FileText },
   { id: "organizer", label: "Appointment Organizer", icon: CalendarDays },
+  { id: "cockpit", label: "Clinical Cockpit", icon: Stethoscope },
   { id: "analysis", label: "Clinic Analysis", icon: TrendingUp },
   { id: "research", label: "Research Projects", icon: Search },
+  { id: "ai-assistant", label: "AI Research Assistant", icon: Search },
+  { id: "messages", label: "Messages & Chat", icon: MessageSquare },
   { id: "templates", label: "Templates", icon: FileText },
-  { id: "messages", label: "Messages", icon: MessageSquare },
   { id: "tasks", label: "Assistant Tasks", icon: CheckCircle },
 ]
 
@@ -426,7 +430,7 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "consultation" && (
-            <NewConsultation />
+            <EnhancedNewConsultation />
           )}
 
           {activeTab === "organizer" && (
@@ -437,12 +441,36 @@ export default function DentistDashboard() {
             />
           )}
 
+          {activeTab === "cockpit" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Clinical Cockpit</h1>
+                  <p className="text-gray-500">Comprehensive clinical management center</p>
+                </div>
+              </div>
+              <ClinicalCockpit />
+            </div>
+          )}
+
           {activeTab === "analysis" && (
             <ClinicAnalysis />
           )}
 
           {activeTab === "research" && (
             <ResearchProjects />
+          )}
+
+          {activeTab === "ai-assistant" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">AI Research Assistant</h1>
+                  <p className="text-gray-500">AI-powered clinical research and analysis</p>
+                </div>
+              </div>
+              <ResearchAiAssistant />
+            </div>
           )}
 
           {activeTab === "templates" && (
@@ -471,12 +499,18 @@ export default function DentistDashboard() {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-                  <p className="text-gray-500">Patient communication center</p>
+                  <h1 className="text-2xl font-bold text-gray-900">Messages & Chat</h1>
+                  <p className="text-gray-500">Patient communication and chat center</p>
                 </div>
               </div>
 
-              <SimpleMessagingInterface />
+              <div className="space-y-6">
+                <MessagesChatInterface />
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Messages</h3>
+                  <SimpleMessagingInterface />
+                </div>
+              </div>
             </div>
           )}
 
