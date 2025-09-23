@@ -1,132 +1,183 @@
-# ENDOFLOW
+# Supabase CLI
 
-An AI-powered SaaS application for dental clinics that automates clinical workflows, improves documentation, and enhances patient engagement.
+[![Coverage Status](https://coveralls.io/repos/github/supabase/cli/badge.svg?branch=main)](https://coveralls.io/github/supabase/cli?branch=main) [![Bitbucket Pipelines](https://img.shields.io/bitbucket/pipelines/supabase-cli/setup-cli/master?style=flat-square&label=Bitbucket%20Canary)](https://bitbucket.org/supabase-cli/setup-cli/pipelines) [![Gitlab Pipeline Status](https://img.shields.io/gitlab/pipeline-status/sweatybridge%2Fsetup-cli?label=Gitlab%20Canary)
+](https://gitlab.com/sweatybridge/setup-cli/-/pipelines)
 
-## Overview
+[Supabase](https://supabase.io) is an open source Firebase alternative. We're building the features of Firebase using enterprise-grade open source tools.
 
-ENDOFLOW provides three specialized, role-based dashboards within a unified Next.js application:
+This repository contains all the functionality for Supabase CLI.
 
-### 🦷 Patient Dashboard (Mobile-First)
-- Bottom tab navigation optimized for mobile devices
-- Next appointment homepage with quick booking
-- Digital file viewer for treatment records and intake forms
-- AI-powered chatbot with urgent assistance feature
-- Personalized dental education library
+- [x] Running Supabase locally
+- [x] Managing database migrations
+- [x] Creating and deploying Supabase Functions
+- [x] Generating types directly from your database schema
+- [x] Making authenticated HTTP requests to [Management API](https://supabase.com/docs/reference/api/introduction)
 
-### 👩‍⚕️ Assistant Dashboard (Task-Oriented)
-- Sidebar navigation with daily task hub
-- Patient registration with UHID generation
-- Account verification and vitals entry
-- File upload management system
-- Real-time Kanban board for dentist-delegated tasks
+## Getting started
 
-### 🩺 Dentist Dashboard (Command Center)
-- Top tab navigation for comprehensive clinic management
-- Two-column patient queue with clinical cockpit
-- Full-screen digital history-taking with voice-to-text
-- Interactive FDI dental chart with 3D visual aids
-- Endo-AI Co-Pilot for treatment recommendations
-- Master calendar and templates management
-- Research studio for patient cohort analysis
+### Install the CLI
 
-## Tech Stack
-
-- **Framework**: [Next.js 14+](https://nextjs.org/) with App Router
-- **Database**: [PostgreSQL](https://www.postgresql.org/) via [Supabase](https://supabase.com/)
-- **ORM**: [Drizzle](https://orm.drizzle.team/)
-- **UI Library**: [shadcn/ui](https://ui.shadcn.com/) with [Tailwind CSS](https://tailwindcss.com/)
-- **Authentication**: Supabase Auth with role-based access control
-- **Automation**: [n8n](https://n8n.io/) for complex workflows
-
-## Getting Started
+Available via [NPM](https://www.npmjs.com) as dev dependency. To install:
 
 ```bash
-git clone <repository-url>
-cd endoflow3-main
-pnpm install
+npm i supabase --save-dev
 ```
 
-## Development Setup
-
-### Database Configuration
-
-1. Set up your Supabase project and get your connection details
-2. Create your `.env` file:
+To install the beta release channel:
 
 ```bash
-pnpm db:setup
+npm i supabase@beta --save-dev
 ```
 
-3. Run database migrations:
+When installing with yarn 4, you need to disable experimental fetch with the following nodejs config.
+
+```
+NODE_OPTIONS=--no-experimental-fetch yarn add supabase
+```
+
+> **Note**
+For Bun versions below v1.0.17, you must add `supabase` as a [trusted dependency](https://bun.sh/guides/install/trusted) before running `bun add -D supabase`.
+
+<details>
+  <summary><b>macOS</b></summary>
+
+  Available via [Homebrew](https://brew.sh). To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To install the beta release channel:
+  
+  ```sh
+  brew install supabase/tap/supabase-beta
+  brew link --overwrite supabase-beta
+  ```
+  
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Windows</b></summary>
+
+  Available via [Scoop](https://scoop.sh). To install:
+
+  ```powershell
+  scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
+  scoop install supabase
+  ```
+
+  To upgrade:
+
+  ```powershell
+  scoop update supabase
+  ```
+</details>
+
+<details>
+  <summary><b>Linux</b></summary>
+
+  Available via [Homebrew](https://brew.sh) and Linux packages.
+
+  #### via Homebrew
+
+  To install:
+
+  ```sh
+  brew install supabase/tap/supabase
+  ```
+
+  To upgrade:
+
+  ```sh
+  brew upgrade supabase
+  ```
+
+  #### via Linux packages
+
+  Linux packages are provided in [Releases](https://github.com/supabase/cli/releases). To install, download the `.apk`/`.deb`/`.rpm`/`.pkg.tar.zst` file depending on your package manager and run the respective commands.
+
+  ```sh
+  sudo apk add --allow-untrusted <...>.apk
+  ```
+
+  ```sh
+  sudo dpkg -i <...>.deb
+  ```
+
+  ```sh
+  sudo rpm -i <...>.rpm
+  ```
+
+  ```sh
+  sudo pacman -U <...>.pkg.tar.zst
+  ```
+</details>
+
+<details>
+  <summary><b>Other Platforms</b></summary>
+
+  You can also install the CLI via [go modules](https://go.dev/ref/mod#go-install) without the help of package managers.
+
+  ```sh
+  go install github.com/supabase/cli@latest
+  ```
+
+  Add a symlink to the binary in `$PATH` for easier access:
+
+  ```sh
+  ln -s "$(go env GOPATH)/bin/cli" /usr/bin/supabase
+  ```
+
+  This works on other non-standard Linux distros.
+</details>
+
+<details>
+  <summary><b>Community Maintained Packages</b></summary>
+
+  Available via [pkgx](https://pkgx.sh/). Package script [here](https://github.com/pkgxdev/pantry/blob/main/projects/supabase.com/cli/package.yml).
+  To install in your working directory:
+
+  ```bash
+  pkgx install supabase
+  ```
+
+  Available via [Nixpkgs](https://nixos.org/). Package script [here](https://github.com/NixOS/nixpkgs/blob/master/pkgs/development/tools/supabase-cli/default.nix).
+</details>
+
+### Run the CLI
 
 ```bash
-pnpm db:migrate
-pnpm db:seed
+supabase bootstrap
 ```
 
-### Development Server
+Or using npx:
 
 ```bash
-pnpm dev
+npx supabase bootstrap
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the application.
+The bootstrap command will guide you through the process of setting up a Supabase project using one of the [starter](https://github.com/supabase-community/supabase-samples/blob/main/samples.json) templates.
 
-## Available Scripts
+## Docs
 
-- `pnpm dev` - Start development server with Turbopack
-- `pnpm build` - Build production bundle
-- `pnpm start` - Start production server
-- `pnpm db:setup` - Initialize database configuration
-- `pnpm db:migrate` - Run database migrations
-- `pnpm db:seed` - Seed database with test data
-- `pnpm db:generate` - Generate new migration files
-- `pnpm db:studio` - Open Drizzle Studio for database management
+Command & config reference can be found [here](https://supabase.com/docs/reference/cli/about).
 
-## Project Structure
+## Breaking changes
 
+We follow semantic versioning for changes that directly impact CLI commands, flags, and configurations.
+
+However, due to dependencies on other service images, we cannot guarantee that schema migrations, seed.sql, and generated types will always work for the same CLI major version. If you need such guarantees, we encourage you to pin a specific version of CLI in package.json.
+
+## Developing
+
+To run from source:
+
+```sh
+# Go >= 1.22
+go run . help
 ```
-app/
-├── (login)/           # Authentication routes
-│   └── sign-in/       # Login page
-├── (dashboard)/       # Protected dashboard routes
-│   └── dashboard/     # Role-specific dashboards
-components/
-├── ui/               # shadcn/ui components
-lib/
-├── db/              # Database schema and migrations
-└── utils.ts         # Utility functions
-temp/                # v0.dev prototypes and reference screenshots
-├── login-page/      # Login/signup components and UI references
-├── patient-dashboard/   # Patient dashboard components and screenshots
-├── assistant-dashboard/ # Assistant dashboard components and screenshots
-└── dentist-dashboard/   # Dentist dashboard components and screenshots
-```
-
-## Authentication Flow
-
-1. **Login Page**: Serves as the landing page
-2. **Sign-up Process**: Comprehensive Digital Intake Form
-3. **Account Verification**: Assistant verification required before login access
-4. **Role-based Routing**: Users redirected to appropriate dashboard based on role (patient, assistant, dentist)
-
-## Development Phases
-
-### Phase 1: Authentication Integration
-- [ ] Implement Supabase authentication
-- [ ] Create role-based routing system
-- [ ] Integrate login and signup forms from `/temp/login-page/`
-
-### Phase 2: Dashboard Assembly
-- [ ] Patient dashboard with mobile-first design
-- [ ] Assistant dashboard with task management
-- [ ] Dentist dashboard with clinical tools
-
-### Phase 3: Backend Integration
-- [ ] Connect Supabase for real-time data
-- [ ] Implement n8n automation workflows
-- [ ] Replace mock data with live database connections
-
-## Contributing
-
-This project is in active development. The UI prototypes and screenshots in the `/temp/` directory serve as the design reference for implementation.
