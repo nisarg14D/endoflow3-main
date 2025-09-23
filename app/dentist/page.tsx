@@ -28,7 +28,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react"
-import { DentistAppointmentOrganizer } from "@/components/dentist/appointment-organizer"
+import { EnhancedAppointmentOrganizer } from "@/components/dentist/enhanced-appointment-organizer"
 import { DentistTodaysView } from "@/components/dentist/todays-view"
 import { DentistPatientQueue } from "@/components/dentist/patient-queue"
 import { LivePatientManagement } from "@/components/dentist/live-patient-management"
@@ -37,6 +37,9 @@ import { ClinicalCockpit } from "@/components/dentist/clinical-cockpit"
 import { RealtimeAppointments } from "@/components/dentist/realtime-appointments"
 import { NewConsultation } from "@/components/dentist/new-consultation"
 import { NotificationCenter } from "@/components/notifications/notification-center"
+import { ClinicAnalysis } from "@/components/dentist/clinic-analysis"
+import { ResearchProjects } from "@/components/dentist/research-projects"
+import SimpleMessagingInterface from "@/components/dentist/simple-messaging-interface"
 import { getCurrentDentist, getTodaysAppointments, getWeekAppointments, getDentistAppointmentsAction } from "@/lib/actions/dentist"
 import { logout } from "@/lib/actions/auth"
 import { format } from "date-fns"
@@ -423,11 +426,11 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "consultation" && (
-            <NewConsultation dentistId={dentistData.id} />
+            <NewConsultation />
           )}
 
           {activeTab === "organizer" && (
-            <DentistAppointmentOrganizer
+            <EnhancedAppointmentOrganizer
               dentistId={dentistData.id}
               dentistName={dentistData.name}
               onRefreshStats={loadAppointmentStats}
@@ -435,47 +438,11 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "analysis" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Clinic Analysis</h1>
-                  <p className="text-gray-500">Analytics and performance insights</p>
-                </div>
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  Generate Report
-                </Button>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Analytics Dashboard</h3>
-                  <p className="text-gray-600">Clinic analysis and reporting tools coming soon...</p>
-                </div>
-              </div>
-            </div>
+            <ClinicAnalysis />
           )}
 
           {activeTab === "research" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Research Projects</h1>
-                  <p className="text-gray-500">Clinical research and data analysis</p>
-                </div>
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  New Project
-                </Button>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Research Studio</h3>
-                  <p className="text-gray-600">Research studio and project management coming soon...</p>
-                </div>
-              </div>
-            </div>
+            <ResearchProjects />
           )}
 
           {activeTab === "templates" && (
@@ -505,20 +472,11 @@ export default function DentistDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-                  <p className="text-gray-500">Patient and staff communication</p>
-                </div>
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  New Message
-                </Button>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Message Center</h3>
-                  <p className="text-gray-600">Patient and staff messaging system coming soon...</p>
+                  <p className="text-gray-500">Patient communication center</p>
                 </div>
               </div>
+
+              <SimpleMessagingInterface />
             </div>
           )}
 

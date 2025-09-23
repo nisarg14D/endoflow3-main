@@ -1,15 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Layers, Expand, Info } from "lucide-react"
+import { Layers, Expand, Info, AlertCircle, Loader2 } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { createClient } from '@/lib/supabase/client'
+import { getPatientToothDiagnoses, getPatientLatestToothDiagnoses, saveToothDiagnosis, type ToothDiagnosisData, type ToothChartData } from "@/lib/actions/tooth-diagnoses"
+import { ToothDiagnosisDialog } from "./tooth-diagnosis-dialog"
 import { PrescriptionManagement } from "./prescription-management"
 import { FollowUpManagement } from "./follow-up-management"
 
@@ -24,17 +27,44 @@ interface ToothData {
 
 interface InteractiveDentalChartProps {
   onToothSelect?: (toothNumber: string) => void
+  onMultipleToothSelect?: (toothNumbers: string[]) => void
+  onToothStatusChange?: (toothNumber: string, status: string, data: any) => void
   readOnly?: boolean
   patientId?: string
+  consultationId?: string
+  selectedTooth?: string | null
+  selectedTeeth?: string[]
+  toothData?: Record<string, any>
+  showLabels?: boolean
+  multiSelectMode?: boolean
 }
 
-export function InteractiveDentalChart({ onToothSelect, readOnly = false, patientId }: InteractiveDentalChartProps) {
-  const [selectedTooth, setSelectedTooth] = useState<string | null>(null)
+export function InteractiveDentalChart({
+  onToothSelect,
+  onMultipleToothSelect,
+  onToothStatusChange,
+  readOnly = false,
+  patientId,
+  consultationId,
+  selectedTooth: externalSelectedTooth,
+  selectedTeeth: externalSelectedTeeth,
+  toothData: externalToothData,
+  showLabels = false,
+  multiSelectMode = false
+}: InteractiveDentalChartProps) {
+  const [internalSelectedTooth, setInternalSelectedTooth] = useState<string | null>(null)
+  const [internalSelectedTeeth, setInternalSelectedTeeth] = useState<string[]>([])
+  const selectedTooth = externalSelectedTooth ?? internalSelectedTooth
+  const selectedTeeth = externalSelectedTeeth ?? internalSelectedTeeth
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isFullScreen, setIsFullScreen] = useState(false)
   const [isPrescriptionOpen, setIsPrescriptionOpen] = useState(false)
   const [isFollowUpOpen, setIsFollowUpOpen] = useState(false)
-  const [toothData, setToothData] = useState<Record<string, ToothData>>({
+  const [realTimeToothData, setRealTimeToothData] = useState<ToothChartData>({})
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [followUpRequired, setFollowUpRequired] = useState<string>("no")
+  const [internalToothData, setInternalToothData] = useState<Record<string, ToothData>>({
     "16": { number: "16", status: "caries", diagnosis: "Deep caries", treatment: "Filling required", date: "2024-01-15" },
     "24": { number: "24", status: "filled", diagnosis: "Composite restoration", treatment: "Completed", date: "2023-12-20" },
     "36": { number: "36", status: "crown", diagnosis: "Full crown", treatment: "Crown placed", date: "2023-11-10" },
@@ -42,6 +72,108 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
     "46": { number: "46", status: "attention", diagnosis: "Requires evaluation", treatment: "Pending assessment" },
     "11": { number: "11", status: "root_canal", diagnosis: "Root canal therapy", treatment: "RCT completed", date: "2024-02-01" },
   })
+  
+  // Convert ToothDiagnosisData to ToothData format
+  const convertToothDataFormat = (toothChartData: ToothChartData): Record<string, ToothData> => {
+    const converted: Record<string, ToothData> = {}
+    Object.values(toothChartData).forEach(tooth => {
+      converted[tooth.toothNumber] = {
+        number: tooth.toothNumber,
+        status: tooth.status,
+        diagnosis: tooth.primaryDiagnosis,
+        treatment: tooth.recommendedTreatment,
+        date: tooth.examinationDate,
+        notes: tooth.notes
+      }
+    })
+    return converted
+  }
+  
+  // Use real-time data if available, otherwise fall back to mock data or external data
+  const toothData = patientId && Object.keys(realTimeToothData).length > 0 
+    ? convertToothDataFormat(realTimeToothData)
+    : (externalToothData ?? internalToothData)
+    
+  // Debug logging
+  useEffect(() => {
+    console.log('🦷 [DENTAL-CHART] Data state:', {
+      patientId,
+      consultationId,
+      realTimeToothDataCount: Object.keys(realTimeToothData).length,
+      externalToothDataCount: externalToothData ? Object.keys(externalToothData).length : 0,
+      finalToothDataCount: Object.keys(toothData).length,
+      loading,
+      error
+    })
+  }, [patientId, consultationId, realTimeToothData, externalToothData, loading, error, toothData])
+
+  // Load tooth diagnosis data from the database
+  const loadToothData = async () => {
+    if (!patientId) return
+    
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // For new consultations (no consultationId), load the latest diagnoses across all consultations
+      // For viewing historical consultations, load specific consultation data
+      const diagnosesResult = await getPatientToothDiagnoses(
+        patientId, 
+        consultationId,
+        !consultationId // useLatestForNewConsultation = true when no consultationId
+      )
+      
+      if (diagnosesResult.success) {
+        setRealTimeToothData(diagnosesResult.data || {})
+      } else {
+        setError(diagnosesResult.error || 'Failed to load tooth data')
+      }
+    } catch (error) {
+      console.error('Error loading tooth data:', error)
+      setError('Failed to load tooth data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Load data when patient or consultation changes
+  useEffect(() => {
+    if (patientId) {
+      loadToothData()
+    } else {
+      setRealTimeToothData({})
+    }
+  }, [patientId, consultationId])
+
+  // Set up real-time subscriptions
+  useEffect(() => {
+    if (!patientId) return
+    
+    const supabase = createClient()
+    
+    // Subscribe to tooth diagnoses changes for this patient
+    const channel = supabase
+      .channel(`tooth-diagnoses-${patientId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'api',
+          table: 'tooth_diagnoses',
+          filter: `patient_id=eq.${patientId}`
+        },
+        (payload) => {
+          console.log('Real-time tooth diagnosis update:', payload)
+          // Reload data when changes are detected
+          loadToothData()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [patientId])
 
   // FDI tooth numbering system - Adult teeth
   const upperTeeth = ["18", "17", "16", "15", "14", "13", "12", "11", "21", "22", "23", "24", "25", "26", "27", "28"]
@@ -65,6 +197,14 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
         return "bg-purple-100 border-purple-300 hover:bg-purple-200 text-purple-800"
       case "extraction_needed":
         return "bg-red-200 border-red-400 hover:bg-red-300 text-red-900"
+      case "implant":
+        return "bg-cyan-100 border-cyan-300 hover:bg-cyan-200 text-cyan-800"
+      case "bridge":
+        return "bg-indigo-100 border-indigo-300 hover:bg-indigo-200 text-indigo-800"
+      case "veneer":
+        return "bg-pink-100 border-pink-300 hover:bg-pink-200 text-pink-800"
+      case "orthodontic":
+        return "bg-teal-100 border-teal-300 hover:bg-teal-200 text-teal-800"
       default:
         return "bg-white border-gray-300 hover:bg-gray-50 text-gray-700"
     }
@@ -93,37 +233,263 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
     }
   }
 
-  const handleToothClick = (toothNumber: string) => {
+  const handleToothClick = (toothNumber: string, event?: React.MouseEvent) => {
     const tooth = toothData[toothNumber]
     if (tooth?.status === "missing" || readOnly) {
-      if (tooth?.status !== "missing") {
-        setSelectedTooth(toothNumber)
-        setIsDialogOpen(true)
-      }
       return
     }
 
-    setSelectedTooth(toothNumber)
-    setIsDialogOpen(true)
+    // Handle multiple selection with Ctrl+click
+    if (multiSelectMode && event?.ctrlKey) {
+      const newSelectedTeeth = selectedTeeth.includes(toothNumber)
+        ? selectedTeeth.filter(tooth => tooth !== toothNumber)
+        : [...selectedTeeth, toothNumber]
 
+      if (externalSelectedTeeth) {
+        onMultipleToothSelect?.(newSelectedTeeth)
+      } else {
+        setInternalSelectedTeeth(newSelectedTeeth)
+      }
+
+      console.log(`🦷 Multi-select: ${newSelectedTeeth.length} teeth selected:`, newSelectedTeeth)
+      return
+    }
+
+    // Single selection mode (default behavior)
     if (onToothSelect) {
       onToothSelect(toothNumber)
+    } else {
+      // Fallback to old dialog only if no onToothSelect callback is provided
+      setInternalSelectedTooth(toothNumber)
+      setIsDialogOpen(true)
     }
   }
 
-  const handleSaveToothData = (toothNumber: string, data: Partial<ToothData>) => {
-    setToothData(prev => ({
-      ...prev,
-      [toothNumber]: {
-        ...prev[toothNumber],
-        number: toothNumber,
-        status: "healthy",
-        ...data,
-        date: new Date().toISOString().split('T')[0]
+  const handleToothRightClick = (toothNumber: string, event: React.MouseEvent) => {
+    event.preventDefault()
+
+    if (readOnly) return
+
+    // Show quick context menu for tooth status
+    const contextMenu = document.createElement('div')
+    contextMenu.className = 'fixed z-50 bg-white border border-gray-200 rounded-lg shadow-xl py-1 min-w-48'
+    contextMenu.style.left = event.clientX + 'px'
+    contextMenu.style.top = event.clientY + 'px'
+
+    // Add header
+    const header = document.createElement('div')
+    header.className = 'px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide border-b border-gray-100'
+    header.textContent = `Tooth ${toothNumber} - Quick Actions`
+    contextMenu.appendChild(header)
+
+    const quickOptions = [
+      { status: 'healthy', label: 'Healthy', color: 'text-green-600', icon: '✓' },
+      { status: 'caries', label: 'Caries', color: 'text-red-600', icon: '⚠' },
+      { status: 'filled', label: 'Filled', color: 'text-blue-600', icon: '●' },
+      { status: 'crown', label: 'Crown', color: 'text-yellow-600', icon: '♕' },
+      { status: 'missing', label: 'Missing', color: 'text-gray-600', icon: '×' },
+      { status: 'attention', label: 'Needs Attention', color: 'text-orange-600', icon: '!' },
+      { status: 'root_canal', label: 'Root Canal', color: 'text-purple-600', icon: '⚡' },
+      { status: 'extraction_needed', label: 'Extraction Needed', color: 'text-red-800', icon: '🗑' },
+      { status: 'implant', label: 'Implant', color: 'text-cyan-600', icon: '🔧' },
+      { status: 'bridge', label: 'Bridge', color: 'text-indigo-600', icon: '🌉' },
+      { status: 'veneer', label: 'Veneer', color: 'text-pink-600', icon: '✨' },
+      { status: 'orthodontic', label: 'Orthodontic', color: 'text-teal-600', icon: '⬜' }
+    ]
+
+    quickOptions.forEach(option => {
+      const button = document.createElement('button')
+      button.className = `block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 transition-colors duration-150 flex items-center gap-2 ${option.color}`
+      button.innerHTML = `<span class="text-base">${option.icon}</span><span>${option.label}</span>`
+      button.onclick = () => {
+        handleQuickStatusChange(toothNumber, option.status as ToothData['status'])
+        try {
+          if (document.body.contains(contextMenu)) {
+            document.body.removeChild(contextMenu)
+          }
+        } catch (error) {
+          console.warn('Context menu already removed:', error)
+        }
       }
-    }))
+      contextMenu.appendChild(button)
+    })
+
+    // Add divider and full diagnosis option
+    const divider = document.createElement('div')
+    divider.className = 'border-t border-gray-200 my-2'
+    contextMenu.appendChild(divider)
+
+    const fullDiagnosisButton = document.createElement('button')
+    fullDiagnosisButton.className = 'block w-full px-4 py-3 text-left text-sm hover:bg-blue-50 text-blue-600 font-medium transition-colors duration-150 flex items-center gap-2'
+    fullDiagnosisButton.innerHTML = '<span class="text-base">📋</span><span>Full Diagnosis & Treatment</span>'
+    fullDiagnosisButton.onclick = () => {
+      handleToothClick(toothNumber)
+      try {
+        if (document.body.contains(contextMenu)) {
+          document.body.removeChild(contextMenu)
+        }
+      } catch (error) {
+        console.warn('Context menu already removed:', error)
+      }
+    }
+    contextMenu.appendChild(fullDiagnosisButton)
+
+    document.body.appendChild(contextMenu)
+
+    // Remove context menu when clicking elsewhere
+    const removeMenu = (e: Event) => {
+      if (!contextMenu.contains(e.target as Node)) {
+        try {
+          if (document.body.contains(contextMenu)) {
+            document.body.removeChild(contextMenu)
+          }
+        } catch (error) {
+          console.warn('Context menu already removed:', error)
+        }
+        document.removeEventListener('click', removeMenu)
+      }
+    }
+    setTimeout(() => document.addEventListener('click', removeMenu), 100)
+  }
+
+  const handleQuickStatusChange = async (toothNumber: string, status: ToothData['status']) => {
+    const colorMap = {
+      'healthy': '#22c55e',
+      'caries': '#ef4444',
+      'filled': '#3b82f6',
+      'crown': '#eab308',
+      'missing': '#6b7280',
+      'attention': '#f97316',
+      'root_canal': '#8b5cf6',
+      'extraction_needed': '#dc2626',
+      'implant': '#10b981'
+    }
+
+    // Create tooth data for the status change
+    const updatedToothData = {
+      currentStatus: status,
+      selectedDiagnoses: [getDefaultDiagnosis(status)],
+      selectedTreatments: [getDefaultTreatment(status)],
+      diagnosisDetails: `Quick status change to ${status}`,
+      examinationDate: new Date().toISOString().split('T')[0],
+      symptoms: [],
+      diagnosticNotes: `Status updated via right-click menu`,
+      priority: status === 'extraction_needed' ? 'urgent' :
+                status === 'attention' || status === 'caries' ? 'high' : 'medium',
+      treatmentDetails: getDefaultTreatment(status),
+      duration: '30',
+      estimatedCost: '',
+      scheduledDate: '',
+      treatmentNotes: `Quick action: ${status}`,
+      followUpRequired: ['attention', 'caries', 'extraction_needed'].includes(status)
+    }
+
+    // If we have a status change callback (enhanced consultation mode), use it
+    if (onToothStatusChange) {
+      console.log(`🦷 Quick status change (callback mode) - Tooth ${toothNumber}: ${status}`)
+      onToothStatusChange(toothNumber, status, updatedToothData)
+      return
+    }
+
+    // Otherwise, use the original database save logic for standalone mode
+    if (!patientId) {
+      console.warn('No patient ID provided for saving tooth data')
+      return
+    }
+
+    // Prepare tooth diagnosis data for database save
+    const toothDiagnosisData: ToothDiagnosisData = {
+      patientId,
+      consultationId,
+      toothNumber,
+      status: status as any, // Convert to our ToothDiagnosisData status type
+      primaryDiagnosis: getDefaultDiagnosis(status),
+      recommendedTreatment: getDefaultTreatment(status),
+      treatmentPriority: status === 'extraction_needed' ? 'urgent' :
+                        status === 'attention' || status === 'caries' ? 'high' : 'medium',
+      colorCode: colorMap[status] || '#22c55e',
+      followUpRequired: ['attention', 'caries', 'extraction_needed'].includes(status),
+      examinationDate: new Date().toISOString().split('T')[0],
+      notes: `Quick status change to ${status} via dental chart`
+    }
+
+    // Save to database
+    try {
+      const result = await saveToothDiagnosis(toothDiagnosisData)
+      if (result.success) {
+        console.log(`🦷 Quick status change saved - Tooth ${toothNumber}: ${status}`)
+        // Data will be automatically updated via real-time subscription
+      } else {
+        console.error('Failed to save tooth diagnosis:', result.error)
+        setError(result.error || 'Failed to save tooth diagnosis')
+      }
+    } catch (error) {
+      console.error('Error saving tooth diagnosis:', error)
+      setError('Failed to save tooth diagnosis')
+    }
+
+    // Only update internal tooth data if we're not using patient data
+    if (!patientId && !externalToothData) {
+      setInternalToothData(prev => ({
+        ...prev,
+        [toothNumber]: {
+          ...prev[toothNumber],
+          number: toothNumber,
+          status,
+          date: new Date().toISOString().split('T')[0],
+          diagnosis: getDefaultDiagnosis(status),
+          treatment: getDefaultTreatment(status)
+        }
+      }))
+    }
+  }
+
+  const getDefaultDiagnosis = (status: ToothData['status']): string => {
+    const diagnoses = {
+      'healthy': 'Healthy tooth',
+      'caries': 'Dental caries detected',
+      'filled': 'Restored with filling',
+      'crown': 'Crown restoration',
+      'missing': 'Tooth missing',
+      'attention': 'Requires clinical evaluation',
+      'root_canal': 'Root canal therapy',
+      'extraction_needed': 'Extraction indicated',
+      'implant': 'Dental implant'
+    }
+    return diagnoses[status] || ''
+  }
+
+  const getDefaultTreatment = (status: ToothData['status']): string => {
+    const treatments = {
+      'healthy': 'Routine maintenance',
+      'caries': 'Filling required',
+      'filled': 'Monitor restoration',
+      'crown': 'Monitor crown',
+      'missing': 'Consider replacement',
+      'attention': 'Further examination needed',
+      'root_canal': 'RCT completed',
+      'extraction_needed': 'Schedule extraction',
+      'implant': 'Implant placed'
+    }
+    return treatments[status] || ''
+  }
+
+  const handleSaveToothData = (toothNumber: string, data: Partial<ToothData>) => {
+    // This function is for the legacy dialog - not used with patient data
+    if (!patientId && !externalToothData) {
+      setInternalToothData(prev => ({
+        ...prev,
+        [toothNumber]: {
+          ...prev[toothNumber],
+          number: toothNumber,
+          status: "healthy",
+          ...data,
+          date: new Date().toISOString().split('T')[0]
+        }
+      }))
+    }
     setIsDialogOpen(false)
-    setSelectedTooth(null)
+    setInternalSelectedTooth(null)
   }
 
   const renderTooth = (toothNumber: string, isUpper = true) => {
@@ -138,9 +504,11 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
           transition-all duration-200 flex items-center justify-center
           ${tooth.status === "missing" ? "opacity-50" : "hover:scale-105 hover:shadow-md"}
           ${selectedTooth === toothNumber ? "ring-2 ring-blue-500 ring-offset-1" : ""}
+          ${selectedTeeth.includes(toothNumber) ? "ring-2 ring-purple-500 ring-offset-1 bg-purple-50" : ""}
         `}
-        onClick={() => handleToothClick(toothNumber)}
-        title={`Tooth ${toothNumber}${tooth.diagnosis ? ` - ${tooth.diagnosis}` : ""}`}
+        onClick={(e) => handleToothClick(toothNumber, e)}
+        onContextMenu={(e) => handleToothRightClick(toothNumber, e)}
+        title={`Tooth ${toothNumber}${tooth.diagnosis ? ` - ${tooth.diagnosis}` : ""}\nLeft click: Full diagnosis | Right click: Quick options${multiSelectMode ? ' | Ctrl+Click: Multi-select' : ''}`}
       >
         <span className="text-xs font-bold">{toothNumber}</span>
         {tooth.status !== "healthy" && tooth.status !== "missing" && (
@@ -192,9 +560,15 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="current-status">Current Status</Label>
-                    <Select defaultValue={tooth.status} onValueChange={(value) => {
-                      const newData = { ...tooth, status: value as ToothData['status'] }
-                      setToothData(prev => ({ ...prev, [selectedTooth]: newData }))
+                    <Select defaultValue={tooth.status || "healthy"} onValueChange={(value) => {
+                      // Handle status change - for patient data, this should save to database
+                      if (patientId) {
+                        handleQuickStatusChange(selectedTooth, value as ToothData['status'])
+                      } else {
+                        // Update internal data for non-patient mode
+                        const newData = { ...tooth, status: value as ToothData['status'] }
+                        setInternalToothData(prev => ({ ...prev, [selectedTooth]: newData }))
+                      }
                     }}>
                       <SelectTrigger>
                         <SelectValue />
@@ -214,7 +588,7 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
 
                   <div>
                     <Label htmlFor="primary-diagnosis">Primary Diagnosis</Label>
-                    <Select defaultValue={tooth.diagnosis}>
+                    <Select defaultValue={tooth.diagnosis || ""}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select diagnosis..." />
                       </SelectTrigger>
@@ -255,7 +629,7 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {['Pain', 'Sensitivity', 'Swelling', 'Bleeding', 'Mobility', 'Fracture'].map((symptom) => (
                         <label key={symptom} className="flex items-center gap-2 text-sm">
-                          <input type="checkbox" className="rounded" />
+                          <input type="checkbox" className="rounded" defaultChecked={false} />
                           {symptom}
                         </label>
                       ))}
@@ -281,7 +655,7 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
                 <div className="space-y-3">
                   <div>
                     <Label htmlFor="treatment-type">Recommended Treatment</Label>
-                    <Select defaultValue={tooth.treatment}>
+                    <Select defaultValue={tooth.treatment || ""}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select treatment..." />
                       </SelectTrigger>
@@ -365,11 +739,23 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
                     <Label htmlFor="follow-up">Follow-up Required</Label>
                     <div className="flex items-center gap-4 mt-2">
                       <label className="flex items-center gap-2">
-                        <input type="radio" name="followup" value="yes" />
+                        <input 
+                          type="radio" 
+                          name="followup" 
+                          value="yes" 
+                          checked={followUpRequired === "yes"}
+                          onChange={(e) => setFollowUpRequired(e.target.value)}
+                        />
                         <span className="text-sm">Yes</span>
                       </label>
                       <label className="flex items-center gap-2">
-                        <input type="radio" name="followup" value="no" />
+                        <input 
+                          type="radio" 
+                          name="followup" 
+                          value="no" 
+                          checked={followUpRequired === "no"}
+                          onChange={(e) => setFollowUpRequired(e.target.value)}
+                        />
                         <span className="text-sm">No</span>
                       </label>
                     </div>
@@ -402,7 +788,7 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
                 variant="outline"
                 onClick={() => {
                   setIsDialogOpen(false)
-                  setSelectedTooth(null)
+                  setInternalSelectedTooth(null)
                 }}
               >
                 Cancel
@@ -448,13 +834,23 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
     </div>
   )
 
-  // Calculate statistics
+  // Calculate real-time statistics
   const allTeeth = [...upperTeeth, ...lowerTeeth]
-  const healthyCount = allTeeth.filter(t => !toothData[t] || toothData[t].status === "healthy").length
-  const cariesCount = allTeeth.filter(t => toothData[t]?.status === "caries").length
-  const filledCount = allTeeth.filter(t => toothData[t]?.status === "filled").length
-  const needsAttentionCount = allTeeth.filter(t => toothData[t]?.status === "attention").length
-  const missingCount = allTeeth.filter(t => toothData[t]?.status === "missing").length
+  const stats = allTeeth.reduce((acc, toothNumber) => {
+    const tooth = toothData[toothNumber]
+    const status = tooth?.status || 'healthy'
+    acc[status] = (acc[status] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  const healthyCount = stats.healthy || 0
+  const cariesCount = stats.caries || 0
+  const filledCount = stats.filled || 0
+  const crownCount = stats.crown || 0
+  const rootCanalCount = stats.root_canal || 0
+  const needsAttentionCount = stats.attention || 0
+  const missingCount = stats.missing || 0
+  const extractionNeededCount = stats.extraction_needed || 0
 
   return (
     <div className="space-y-6">
@@ -483,6 +879,81 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
           </Button>
         </div>
       </div>
+
+      {/* Multi-select Control Panel */}
+      {multiSelectMode && selectedTeeth.length > 0 && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                    {selectedTeeth.length} teeth selected
+                  </Badge>
+                  <span className="text-sm text-gray-600">
+                    Teeth: {selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(', ')}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (externalSelectedTeeth) {
+                      onMultipleToothSelect?.([])
+                    } else {
+                      setInternalSelectedTeeth([])
+                    }
+                  }}
+                >
+                  Clear Selection
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    if (onToothSelect) {
+                      // Create a combined tooth number for multi-select (e.g., "11,12,13")
+                      const combinedToothNumbers = selectedTeeth.sort((a, b) => parseInt(a) - parseInt(b)).join(',')
+                      onToothSelect(combinedToothNumbers)
+                      console.log(`🦷 Multi-select diagnosis: Opening interface for teeth ${combinedToothNumbers}`)
+                    }
+                  }}
+                >
+                  Diagnose Selected
+                </Button>
+                <Select onValueChange={(status) => {
+                  selectedTeeth.forEach(toothNumber => {
+                    handleQuickStatusChange(toothNumber, status as ToothData['status'])
+                  })
+                  console.log(`🦷 Bulk status change: ${selectedTeeth.length} teeth set to ${status}`)
+                }}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Bulk Action" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="healthy">Set All Healthy</SelectItem>
+                    <SelectItem value="caries">Set All Caries</SelectItem>
+                    <SelectItem value="filled">Set All Filled</SelectItem>
+                    <SelectItem value="crown">Set All Crown</SelectItem>
+                    <SelectItem value="missing">Set All Missing</SelectItem>
+                    <SelectItem value="attention">Set All Attention</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Instructions for Multi-select */}
+      {multiSelectMode && (
+        <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-200">
+          <p className="font-medium text-blue-800 mb-1">Multi-select Mode Active</p>
+          <p>Hold <kbd className="px-1 py-0.5 bg-gray-200 rounded text-xs">Ctrl</kbd> and click teeth to select multiple. Selected teeth will have a purple border.</p>
+        </div>
+      )}
 
       {/* Legend */}
       <Card>
@@ -517,36 +988,54 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
         </CardContent>
       </Card>
 
-      {/* Quick Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">{healthyCount}</div>
+      {/* Real-time Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-green-600">{healthyCount}</div>
             <div className="text-xs text-gray-600">Healthy</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-red-600">{cariesCount}</div>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-red-600">{cariesCount}</div>
             <div className="text-xs text-gray-600">Caries</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{filledCount}</div>
-            <div className="text-xs text-gray-600">Restorations</div>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-blue-600">{filledCount}</div>
+            <div className="text-xs text-gray-600">Filled</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-orange-600">{needsAttentionCount}</div>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-yellow-600">{crownCount}</div>
+            <div className="text-xs text-gray-600">Crown</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-purple-600">{rootCanalCount}</div>
+            <div className="text-xs text-gray-600">RCT</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-orange-600">{needsAttentionCount}</div>
             <div className="text-xs text-gray-600">Attention</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardContent className="p-4 text-center">
-            <div className="text-2xl font-bold text-gray-600">{missingCount}</div>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-gray-600">{missingCount}</div>
             <div className="text-xs text-gray-600">Missing</div>
+          </CardContent>
+        </Card>
+        <Card className="transition-all hover:shadow-md">
+          <CardContent className="p-3 text-center">
+            <div className="text-xl font-bold text-red-800">{extractionNeededCount}</div>
+            <div className="text-xs text-gray-600">Extraction</div>
           </CardContent>
         </Card>
       </div>
@@ -618,6 +1107,25 @@ export function InteractiveDentalChart({ onToothSelect, readOnly = false, patien
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Tooth Diagnosis Dialog */}
+      <ToothDiagnosisDialog
+        isOpen={isDialogOpen}
+        onClose={() => {
+          setIsDialogOpen(false)
+          setInternalSelectedTooth(null)
+        }}
+        toothNumber={selectedTooth || ''}
+        patientId={patientId}
+        consultationId={consultationId}
+        existingData={selectedTooth ? realTimeToothData[selectedTooth] : undefined}
+        onDataSaved={() => {
+          // Reload data after successful save
+          loadToothData()
+          setIsDialogOpen(false)
+          setInternalSelectedTooth(null)
+        }}
+      />
     </div>
   )
 }

@@ -494,7 +494,7 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
                             <div className="flex items-center gap-2 mt-2">
                               <Label className="text-xs text-gray-600">Priority:</Label>
                               <Select
-                                value={individualToothTreatments[tooth]?.priority || toothData.priority}
+                                value={individualToothTreatments[tooth]?.priority || toothData.priority || 'medium'}
                                 onValueChange={(value) => {
                                   setIndividualToothTreatments(prev => ({
                                     ...prev,

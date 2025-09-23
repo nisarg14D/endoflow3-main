@@ -15,6 +15,13 @@
       "when": 1758043141713,
       "tag": "0001_mean_spot",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1758634771951,
+      "tag": "0002_youthful_black_cat",
+      "breakpoints": true
     }
   ]
 }

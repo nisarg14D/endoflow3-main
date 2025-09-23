@@ -114,13 +114,7 @@ export async function getAppointmentRequests() {
     const { data: requests, error } = await supabase
       .schema('api')
       .from('appointment_requests')
-      .select(`
-        *,
-        profiles (
-          id,
-          full_name
-        )
-      `)
+      .select('*')
       .eq('patient_id', user.id)
       .order('created_at', { ascending: false })
 

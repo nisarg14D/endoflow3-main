@@ -34,7 +34,23 @@ export function AppointmentBookingForm({
 }: AppointmentBookingFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date(preferredDate))
+  
+  // Safely parse the preferred date with fallback
+  const parsePreferredDate = (dateStr: string) => {
+    try {
+      const parsed = new Date(dateStr)
+      if (isNaN(parsed.getTime())) {
+        console.warn('Invalid date string:', dateStr)
+        return new Date() // fallback to today
+      }
+      return parsed
+    } catch (error) {
+      console.warn('Error parsing date:', error)
+      return new Date() // fallback to today
+    }
+  }
+  
+  const [selectedDate, setSelectedDate] = useState<Date>(parsePreferredDate(preferredDate))
   const [formData, setFormData] = useState({
     dentistId: '',
     scheduledTime: preferredTime,
@@ -140,7 +156,7 @@ export function AppointmentBookingForm({
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+              {selectedDate && !isNaN(selectedDate.getTime()) ? format(selectedDate, "PPP") : <span>Pick a date</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0">
@@ -154,7 +170,14 @@ export function AppointmentBookingForm({
           </PopoverContent>
         </Popover>
         <div className="text-xs text-gray-500">
-          Original request: {format(new Date(preferredDate), "PPP")}
+          Original request: {(() => {
+            try {
+              const date = new Date(preferredDate)
+              return isNaN(date.getTime()) ? 'Invalid date' : format(date, "PPP")
+            } catch (error) {
+              return 'Invalid date'
+            }
+          })()}
         </div>
       </div>
 

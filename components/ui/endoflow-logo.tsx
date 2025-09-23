@@ -29,11 +29,14 @@ const textSizeClasses = {
 }
 
 export function EndoflowLogo({ className = '', size = 'md', showText = true }: EndoflowLogoProps) {
+  // Add cache-busting parameter to ensure fresh logo loads (logo4.svg update)
+  const logoSrc = '/endoflow-logo.svg?v=logo4-2025'
+  
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* ENDOFLOW Tooth Logo */}
       <img
-        src="/endoflow-logo.svg"
+        src={logoSrc}
         alt="Endoflow"
         className={`object-contain ${sizeClasses[size]}`}
       />

@@ -336,7 +336,11 @@ export function ClinicalCockpit({
               </TabsContent>
 
               <TabsContent value="chart" className="p-6 m-0">
-                <InteractiveDentalChart />
+                <InteractiveDentalChart 
+                  patientId={selectedPatient?.id}
+                  readOnly={false}
+                  showLabels={true}
+                />
               </TabsContent>
 
               <TabsContent value="gallery" className="p-0 m-0">

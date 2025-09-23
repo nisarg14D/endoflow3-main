@@ -46,6 +46,7 @@ import { RealtimeAppointmentRequests } from "@/components/realtime-appointment-r
 import { RealtimePatientAppointments } from "@/components/patient/realtime-patient-appointments"
 import { PatientFilesViewer } from "@/components/patient-files-viewer"
 import { EnhancedAppointmentBooking } from "@/components/patient/enhanced-appointment-booking"
+import { ConsultationHistory } from "@/components/consultation-history"
 import {
   sendMessage,
   requestUrgentAssistance,
@@ -58,6 +59,9 @@ import {
 import { logout } from "@/lib/actions/auth"
 import { createClient } from '@/lib/supabase/client'
 import { EndoflowLogo } from "@/components/ui/endoflow-logo"
+import { ReferralSharingModal } from "@/components/patient/referral-sharing-modal"
+import { PrescriptionAlarms } from "@/components/patient/prescription-alarms"
+import SimplePatientMessaging from "@/components/patient/simple-patient-messaging"
 
 interface PatientData {
   id: string
@@ -85,6 +89,7 @@ const tabs = [
   { id: "file", label: "My File", icon: FileText },
   { id: "appointments", label: "Appointments", icon: Calendar },
   { id: "messages", label: "Messages", icon: MessageCircle },
+  { id: "alarms", label: "Alarms", icon: Bell },
   { id: "library", label: "Library", icon: BookOpen },
 ]
 
@@ -101,6 +106,7 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   const [showViewNotes, setShowViewNotes] = useState(false)
   const [selectedNotes, setSelectedNotes] = useState<any>(null)
   const [showBookingForm, setShowBookingForm] = useState(false)
+  const [showReferralForm, setShowReferralForm] = useState(false)
   const [rescheduleForm, setRescheduleForm] = useState({
     preferredDate: "",
     preferredTime: "",
@@ -301,6 +307,27 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           </Card>
         </div>
 
+        {/* Referral Sharing Card */}
+        <Card className="bg-gradient-to-r from-teal-600 to-cyan-600 border-none shadow-sm">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-semibold mb-1">Share ENDOFLOW</h3>
+                <p className="text-teal-100 text-sm">Refer friends & family</p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowReferralForm(true)}
+                className="bg-white text-teal-600 hover:bg-teal-50"
+              >
+                <Send className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Recent Activity */}
         <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
           <CardHeader>
@@ -360,104 +387,8 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
   }
 
   const renderMessagesTab = () => (
-    <div className="space-y-4 pb-20">
-      {/* Action Buttons */}
-      <div className="flex gap-3 mb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleCallClinic}
-          className="flex-1 flex items-center gap-2 border-teal-200 text-teal-700 hover:bg-teal-50"
-        >
-          <Phone className="w-4 h-4" />
-          Call
-        </Button>
-      </div>
-
-      {/* Urgent Assistance Button */}
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button className="w-full bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 py-3 mb-4">
-            <Bell className="w-5 h-5" />
-            Urgent Assistance 🛎️
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-red-600" />
-              Request Urgent Assistance
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you experiencing a dental emergency? This will immediately notify our clinic staff for
-              urgent assistance. For life-threatening emergencies, please call 911.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleUrgentAssistance} className="bg-red-600 hover:bg-red-700">
-              Request Urgent Help
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Chat Section */}
-      <Card className="bg-white/80 backdrop-blur-sm border border-teal-100 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-sm font-medium text-teal-700 flex items-center gap-2">
-            <MessageCircle className="w-4 h-4 text-teal-600" />
-            Chat with Your Care Team
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {isLoadingData ? (
-              <div className="space-y-4">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="animate-pulse">
-                    <div className="h-16 bg-teal-100 rounded-lg mb-2"></div>
-                  </div>
-                ))}
-              </div>
-            ) : messages.length > 0 ? (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`p-3 rounded-lg max-w-[80%] ${
-                    message.sender_type === 'patient'
-                      ? "ml-auto bg-teal-600 text-white"
-                      : "bg-teal-50 text-teal-800 border border-teal-100"
-                  }`}
-                >
-                  <p className="text-sm">{message.content}</p>
-                  <p className={`text-xs mt-1 ${
-                    message.sender_type === 'patient' ? "text-teal-100" : "text-teal-600"
-                  }`}>
-                    {message.sender_name || (message.sender_type === 'patient' ? 'You' : 'Staff')} • {new Date(message.created_at).toLocaleString()}
-                  </p>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-teal-500 text-center py-8">No messages yet. Start a conversation!</p>
-            )}
-          </div>
-
-          {/* Message Input */}
-          <div className="flex gap-2 mt-4">
-            <Input
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Type your message..."
-              className="flex-1 bg-white text-teal-900 placeholder:text-teal-500 border-teal-200 focus:border-teal-400"
-              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            />
-            <Button onClick={handleSendMessage} size="sm" className="bg-teal-600 hover:bg-teal-700">
-              <Send className="w-4 h-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="h-full p-2">
+      <SimplePatientMessaging patientId={patientData.id} patientName={patientData.name} />
     </div>
   )
 
@@ -528,6 +459,14 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         </CardContent>
       </Card>
 
+      {/* Consultation History */}
+      <ConsultationHistory
+        patientId={patientData.id}
+        showPatientInfo={false}
+        maxHeight="400px"
+        limit={5}
+      />
+
       {/* Medical Files */}
       <PatientFilesViewer
         patientId={patientData.id}
@@ -571,6 +510,10 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         </Card>
       )}
     </div>
+  )
+
+  const renderAlarmsTab = () => (
+    <PrescriptionAlarms patientId={patientData.id} />
   )
 
   const renderLibraryTab = () => (
@@ -713,6 +656,8 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
         return renderAppointmentsTab()
       case "file":
         return renderFileTab()
+      case "alarms":
+        return renderAlarmsTab()
       case "library":
         return renderLibraryTab()
       default:
@@ -808,6 +753,14 @@ export function V0PatientDashboard({ patientData }: V0PatientDashboardProps) {
           })}
         </div>
       </nav>
+
+      {/* Referral Sharing Modal */}
+      {showReferralForm && (
+        <ReferralSharingModal
+          onClose={() => setShowReferralForm(false)}
+          patientName={patientData.name}
+        />
+      )}
 
       {/* Enhanced Booking Form Modal */}
       {showBookingForm && (

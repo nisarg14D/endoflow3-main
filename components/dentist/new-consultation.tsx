@@ -18,6 +18,7 @@ import {
 import { InteractiveDentalChart } from "./interactive-dental-chart"
 import { createClient } from '@/lib/supabase/client'
 import { format, differenceInYears } from 'date-fns'
+import { EnhancedNewConsultation } from './enhanced-new-consultation'
 
 interface Patient {
   id: string
@@ -74,6 +75,16 @@ interface NewConsultationProps {
 }
 
 export function NewConsultation({ selectedPatientId, onPatientSelect }: NewConsultationProps) {
+  // Use the enhanced consultation component
+  return (
+    <EnhancedNewConsultation
+      selectedPatientId={selectedPatientId}
+      onPatientSelect={onPatientSelect}
+    />
+  )
+}
+
+export function OriginalNewConsultation({ selectedPatientId, onPatientSelect }: NewConsultationProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [patients, setPatients] = useState<Patient[]>([])
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null)

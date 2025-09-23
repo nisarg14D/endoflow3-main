@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 import {
   Calendar,
   Clock,
@@ -24,7 +27,15 @@ import {
   Phone,
   Mail,
   MapPin,
-  Stethoscope
+  Stethoscope,
+  CalendarDays,
+  Users,
+  Activity,
+  TrendingUp,
+  Loader2,
+  RefreshCw,
+  Timer,
+  UserCheck
 } from "lucide-react"
 import {
   getDentistAppointmentsAction,
@@ -33,8 +44,14 @@ import {
   dentistRescheduleAppointment,
   getPatientsForBooking
 } from "@/lib/actions/dentist"
-import { getAppointmentRequestsAction, scheduleAppointmentDirectAction } from "@/lib/actions/appointments"
-import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO } from 'date-fns'
+import {
+  getAppointmentRequestsAction,
+  scheduleAppointmentDirectAction,
+  getAppointmentsForWeekAction,
+  updateAppointmentStatusAction
+} from "@/lib/actions/appointments"
+import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from 'date-fns'
+import { createClient } from '@/lib/supabase/client'
 
 interface Appointment {
   id: string
@@ -48,7 +65,33 @@ interface Appointment {
   patients?: {
     first_name: string
     last_name: string
+    date_of_birth?: string
+    phone?: string
   }
+  dentists?: {
+    full_name: string
+    specialty?: string
+  }
+}
+
+interface AppointmentStats {
+  total: number
+  today: number
+  thisWeek: number
+  scheduled: number
+  completed: number
+  inProgress: number
+  cancelled: number
+}
+
+interface NewAppointmentData {
+  patientId: string
+  dentistId: string
+  date: string
+  time: string
+  type: string
+  duration: number
+  notes?: string
 }
 
 interface AppointmentOrganizerProps {
@@ -59,25 +102,64 @@ interface AppointmentOrganizerProps {
 
 export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshStats }: AppointmentOrganizerProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
-  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('day')
+  const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week')
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filteredAppointments, setFilteredAppointments] = useState<Appointment[]>([])
+  const [appointmentStats, setAppointmentStats] = useState<AppointmentStats>({
+    total: 0,
+    today: 0,
+    thisWeek: 0,
+    scheduled: 0,
+    completed: 0,
+    inProgress: 0,
+    cancelled: 0
+  })
   const [isLoading, setIsLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false)
+  const [showNewAppointmentDialog, setShowNewAppointmentDialog] = useState(false)
+  const [pendingRequests, setPendingRequests] = useState<any[]>([])
+  const supabase = createClient()
 
   useEffect(() => {
     loadAppointments()
+    loadPendingRequests()
   }, [currentDate, viewMode])
 
   useEffect(() => {
     filterAppointments()
+    calculateStats()
   }, [appointments, searchTerm, statusFilter])
 
+  useEffect(() => {
+    const channel = supabase
+      .channel('appointment-organizer')
+      .on('postgres_changes',
+        { event: '*', schema: 'api', table: 'appointments' },
+        () => {
+          loadAppointments()
+        }
+      )
+      .on('postgres_changes',
+        { event: '*', schema: 'api', table: 'appointment_requests' },
+        () => {
+          loadPendingRequests()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [])
+
   const loadAppointments = async () => {
-    setIsLoading(true)
+    if (!isLoading) setIsRefreshing(true)
+    else setIsLoading(true)
+
     try {
       let startDate: string
       let endDate: string
@@ -86,27 +168,75 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
         startDate = format(currentDate, 'yyyy-MM-dd')
         endDate = startDate
       } else if (viewMode === 'week') {
-        const start = startOfWeek(currentDate)
-        const end = endOfWeek(currentDate)
+        const start = startOfWeek(currentDate, { weekStartsOn: 1 })
+        const end = endOfWeek(currentDate, { weekStartsOn: 1 })
         startDate = format(start, 'yyyy-MM-dd')
         endDate = format(end, 'yyyy-MM-dd')
       } else {
-        // Month view
         const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
         const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
         startDate = format(start, 'yyyy-MM-dd')
         endDate = format(end, 'yyyy-MM-dd')
       }
 
-      const result = await getDentistAppointmentsAction(startDate, endDate)
+      const result = await getAppointmentsForWeekAction(startDate, endDate, dentistId)
       if (result.success && result.data) {
-        setAppointments(result.data as any)
+        // Fetch patient details for each appointment
+        const appointmentsWithPatients = await Promise.all(
+          result.data.map(async (apt: any) => {
+            const { data: patient } = await supabase
+              .schema('api')
+              .from('patients')
+              .select('first_name, last_name, date_of_birth, phone')
+              .eq('id', apt.patient_id)
+              .single()
+
+            return {
+              ...apt,
+              patients: patient
+            }
+          })
+        )
+        setAppointments(appointmentsWithPatients)
       }
     } catch (error) {
       console.error('Error loading appointments:', error)
     } finally {
       setIsLoading(false)
+      setIsRefreshing(false)
     }
+  }
+
+  const loadPendingRequests = async () => {
+    try {
+      const result = await getAppointmentRequestsAction()
+      if (result.success && result.data) {
+        setPendingRequests(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading pending requests:', error)
+    }
+  }
+
+  const calculateStats = () => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    const startOfThisWeek = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+    const endOfThisWeek = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+
+    const todayAppointments = filteredAppointments.filter(apt => apt.scheduled_date === today)
+    const thisWeekAppointments = filteredAppointments.filter(apt =>
+      apt.scheduled_date >= startOfThisWeek && apt.scheduled_date <= endOfThisWeek
+    )
+
+    setAppointmentStats({
+      total: filteredAppointments.length,
+      today: todayAppointments.length,
+      thisWeek: thisWeekAppointments.length,
+      scheduled: filteredAppointments.filter(apt => apt.status === 'scheduled').length,
+      completed: filteredAppointments.filter(apt => apt.status === 'completed').length,
+      inProgress: filteredAppointments.filter(apt => apt.status === 'in_progress').length,
+      cancelled: filteredAppointments.filter(apt => apt.status === 'cancelled').length
+    })
   }
 
   const filterAppointments = () => {
@@ -146,11 +276,22 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'bg-teal-100 text-teal-800 border-teal-200'
-      case 'in_progress': return 'bg-green-100 text-green-800 border-green-200'
-      case 'completed': return 'bg-gray-100 text-gray-800 border-gray-200'
+      case 'in_progress': return 'bg-blue-100 text-blue-800 border-blue-200'
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200'
       case 'cancelled': return 'bg-red-100 text-red-800 border-red-200'
       case 'no_show': return 'bg-orange-100 text-orange-800 border-orange-200'
       default: return 'bg-gray-100 text-gray-800 border-gray-200'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'scheduled': return <Calendar className="w-3 h-3" />
+      case 'in_progress': return <Activity className="w-3 h-3" />
+      case 'completed': return <CheckCircle className="w-3 h-3" />
+      case 'cancelled': return <AlertCircle className="w-3 h-3" />
+      case 'no_show': return <User className="w-3 h-3" />
+      default: return <Clock className="w-3 h-3" />
     }
   }
 
@@ -167,7 +308,7 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
 
   const handleStatusUpdate = async (appointmentId: string, newStatus: string, notes?: string) => {
     try {
-      const result = await updateDentistAppointmentStatus(appointmentId, newStatus, notes)
+      const result = await updateAppointmentStatusAction(appointmentId, newStatus, dentistId, notes)
       if (result.success) {
         await loadAppointments()
         onRefreshStats()
@@ -176,6 +317,13 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
     } catch (error) {
       console.error('Error updating appointment status:', error)
     }
+  }
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      loadAppointments(),
+      loadPendingRequests()
+    ])
   }
 
   const handleCancelAppointment = async (appointmentId: string, reason: string) => {
@@ -210,44 +358,80 @@ export function DentistAppointmentOrganizer({ dentistId, dentistName, onRefreshS
 
   const renderDayView = () => {
     const dayAppointments = getDayAppointments(currentDate)
-    const timeSlots = Array.from({ length: 20 }, (_, i) => {
-      const hour = Math.floor(i / 2) + 8 // Start from 8 AM
+    const timeSlots = Array.from({ length: 22 }, (_, i) => {
+      const hour = Math.floor(i / 2) + 8
       const minute = i % 2 === 0 ? 0 : 30
       return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`
     })
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1 max-h-[600px] overflow-y-auto">
         {timeSlots.map((timeSlot) => {
-          const appointment = dayAppointments.find(apt => apt.scheduled_time === timeSlot + ':00')
+          const appointment = dayAppointments.find(apt =>
+            apt.scheduled_time.startsWith(timeSlot)
+          )
 
           return (
-            <div key={timeSlot} className="flex items-center border-b border-gray-100 py-2">
-              <div className="w-20 text-sm text-gray-500">{timeSlot}</div>
+            <div key={timeSlot} className="flex items-start border-b border-gray-100 py-3">
+              <div className="w-20 text-sm text-gray-500 pt-1">{timeSlot}</div>
               <div className="flex-1">
                 {appointment ? (
                   <div
-                    className="ml-4 p-3 border rounded-lg cursor-pointer hover:shadow-sm transition-shadow"
+                    className={`ml-4 p-4 border-l-4 rounded-lg cursor-pointer hover:shadow-md transition-all ${
+                      appointment.status === 'in_progress' ? 'border-l-blue-500 bg-blue-50' :
+                      appointment.status === 'completed' ? 'border-l-green-500 bg-green-50' :
+                      appointment.status === 'cancelled' ? 'border-l-red-500 bg-red-50' :
+                      'border-l-teal-500 bg-teal-50'
+                    }`}
                     onClick={() => {
                       setSelectedAppointment(appointment)
                       setShowAppointmentDetails(true)
                     }}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">
-                          {appointment.patients?.first_name} {appointment.patients?.last_name}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarFallback className="bg-teal-100 text-teal-700">
+                            {appointment.patients?.first_name?.[0]}{appointment.patients?.last_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-semibold text-gray-900">
+                            {appointment.patients?.first_name} {appointment.patients?.last_name}
+                          </div>
+                          <div className="text-sm text-gray-600">{appointment.appointment_type}</div>
                         </div>
-                        <div className="text-sm text-gray-600">{appointment.appointment_type}</div>
-                        <div className="text-xs text-gray-500">{appointment.duration_minutes} minutes</div>
                       </div>
-                      <Badge className={getStatusColor(appointment.status)}>
+                      <Badge className={`${getStatusColor(appointment.status)} flex items-center gap-1`}>
+                        {getStatusIcon(appointment.status)}
                         {getStatusLabel(appointment.status)}
                       </Badge>
                     </div>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Timer className="w-3 h-3" />
+                        {appointment.duration_minutes} min
+                      </span>
+                      {appointment.patients?.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {appointment.patients.phone}
+                        </span>
+                      )}
+                    </div>
+                    {appointment.notes && (
+                      <div className="mt-2 text-sm text-gray-600 bg-white/70 p-2 rounded">
+                        {appointment.notes}
+                      </div>
+                    )}
                   </div>
                 ) : (
-                  <div className="ml-4 p-3 text-gray-400 text-sm">Available</div>
+                  <div className="ml-4 p-4 text-gray-400 text-sm border border-dashed border-gray-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Plus className="w-4 h-4" />
+                      Available - Click to schedule
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
