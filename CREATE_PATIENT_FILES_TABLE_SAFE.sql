@@ -27,6 +27,22 @@ CREATE INDEX IF NOT EXISTS idx_patient_files_created_at ON api.patient_files(cre
 -- Enable RLS (safe if already enabled)
 ALTER TABLE api.patient_files ENABLE ROW LEVEL SECURITY;
 
+-- Add foreign key constraints (safe if already exist)
+ALTER TABLE api.patient_files DROP CONSTRAINT IF EXISTS fk_patient_files_uploaded_by;
+ALTER TABLE api.patient_files DROP CONSTRAINT IF EXISTS fk_patient_files_patient_id;
+
+ALTER TABLE api.patient_files 
+ADD CONSTRAINT fk_patient_files_uploaded_by 
+FOREIGN KEY (uploaded_by) 
+REFERENCES public.profiles(id) 
+ON DELETE CASCADE;
+
+ALTER TABLE api.patient_files 
+ADD CONSTRAINT fk_patient_files_patient_id 
+FOREIGN KEY (patient_id) 
+REFERENCES auth.users(id) 
+ON DELETE CASCADE;
+
 -- Drop existing policies first (safe if they don't exist)
 DROP POLICY IF EXISTS "Users can view patient files" ON api.patient_files;
 DROP POLICY IF EXISTS "Staff can upload patient files" ON api.patient_files;

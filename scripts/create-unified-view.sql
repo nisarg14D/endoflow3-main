@@ -9,6 +9,8 @@ ADD COLUMN IF NOT EXISTS user_id UUID;
 UPDATE api.pending_registrations
 SET user_id = (form_data::json->>'user_id')::uuid
 WHERE user_id IS NULL
+AND form_data IS NOT NULL
+AND form_data != ''
 AND form_data::json->>'user_id' IS NOT NULL;
 
 -- 3. Add FK constraint if it doesn't exist
@@ -38,10 +40,22 @@ SELECT
     p.created_at as profile_created_at,
     u.email,
     u.created_at as user_created_at,
-    -- Extract key info from form_data JSON
-    (pr.form_data::json->>'firstName') as first_name,
-    (pr.form_data::json->>'lastName') as last_name,
-    (pr.form_data::json->>'phone') as phone
+    -- Extract key info from form_data JSON (safely handle null/empty text)
+    CASE
+        WHEN pr.form_data IS NOT NULL AND pr.form_data != ''
+        THEN pr.form_data::json->>'firstName'
+        ELSE NULL
+    END as first_name,
+    CASE
+        WHEN pr.form_data IS NOT NULL AND pr.form_data != ''
+        THEN pr.form_data::json->>'lastName'
+        ELSE NULL
+    END as last_name,
+    CASE
+        WHEN pr.form_data IS NOT NULL AND pr.form_data != ''
+        THEN pr.form_data::json->>'phone'
+        ELSE NULL
+    END as phone
 FROM api.pending_registrations pr
 LEFT JOIN public.profiles p ON pr.user_id = p.id
 LEFT JOIN auth.users u ON pr.user_id = u.id
