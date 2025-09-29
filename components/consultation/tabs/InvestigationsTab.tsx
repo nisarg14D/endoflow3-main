@@ -18,19 +18,27 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
   // Simple state management - initialize with stable defaults to prevent controlled/uncontrolled switches
   const [radiographicFindings, setRadiographicFindings] = useState('')
   const [radiographicTypes, setRadiographicTypes] = useState<string[]>([])
-  const [vitalityTests, setVitalityTests] = useState('')
-  const [percussionTests, setPercussionTests] = useState('')
-  const [palpationFindings, setPalpationFindings] = useState('')
+  const [vitalityTests, setVitalityTests] = useState<string[]>([])
+  const [percussionTests, setPercussionTests] = useState<string[]>([])
+  const [palpationFindings, setPalpationFindings] = useState<string[]>([])
   const [laboratoryTests, setLaboratoryTests] = useState('')
   const [recommendations, setRecommendations] = useState('')
 
   // Update local state when data prop changes - ensure stable defaults
   useEffect(() => {
+    // Normalize incoming values for checkboxes
+    const normToArray = (v: any): string[] => {
+      if (!v) return []
+      if (Array.isArray(v)) return v
+      if (typeof v === 'string') return v.split(/;|,|\n/).map(s => s.trim()).filter(Boolean)
+      return []
+    }
+    
     setRadiographicFindings(data?.radiographic_findings || '')
     setRadiographicTypes(data?.radiographic_types || [])
-    setVitalityTests(data?.vitality_tests || '')
-    setPercussionTests(data?.percussion_tests || '')
-    setPalpationFindings(data?.palpation_findings || '')
+    setVitalityTests(normToArray(data?.vitality_tests))
+    setPercussionTests(normToArray(data?.percussion_tests))
+    setPalpationFindings(normToArray(data?.palpation_findings))
     setLaboratoryTests(data?.laboratory_tests || '')
     setRecommendations(data?.recommendations || '')
   }, [data])
@@ -69,13 +77,16 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
     }
   }
 
-  const handleVitalityTestsChange = (value: string) => {
-    setVitalityTests(value)
+  const toggleVitalityTest = (test: string) => {
+    const next = vitalityTests.includes(test)
+      ? vitalityTests.filter(t => t !== test)
+      : [...vitalityTests, test]
+    setVitalityTests(next)
     if (onChange) {
       onChange({
         radiographic_findings: radiographicFindings,
         radiographic_types: radiographicTypes,
-        vitality_tests: value,
+        vitality_tests: next,
         percussion_tests: percussionTests,
         palpation_findings: palpationFindings,
         laboratory_tests: laboratoryTests,
@@ -84,14 +95,17 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
     }
   }
 
-  const handlePercussionTestsChange = (value: string) => {
-    setPercussionTests(value)
+  const togglePercussionTest = (test: string) => {
+    const next = percussionTests.includes(test)
+      ? percussionTests.filter(t => t !== test)
+      : [...percussionTests, test]
+    setPercussionTests(next)
     if (onChange) {
       onChange({
         radiographic_findings: radiographicFindings,
         radiographic_types: radiographicTypes,
         vitality_tests: vitalityTests,
-        percussion_tests: value,
+        percussion_tests: next,
         palpation_findings: palpationFindings,
         laboratory_tests: laboratoryTests,
         recommendations: recommendations
@@ -99,15 +113,18 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
     }
   }
 
-  const handlePalpationFindingsChange = (value: string) => {
-    setPalpationFindings(value)
+  const togglePalpationFinding = (finding: string) => {
+    const next = palpationFindings.includes(finding)
+      ? palpationFindings.filter(f => f !== finding)
+      : [...palpationFindings, finding]
+    setPalpationFindings(next)
     if (onChange) {
       onChange({
         radiographic_findings: radiographicFindings,
         radiographic_types: radiographicTypes,
         vitality_tests: vitalityTests,
         percussion_tests: percussionTests,
-        palpation_findings: value,
+        palpation_findings: next,
         laboratory_tests: laboratoryTests,
         recommendations: recommendations
       })
@@ -145,8 +162,27 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
   }
 
   // Simple options arrays
+  const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
   const radiographicTypeOptions = [
     "IOPA (Intraoral Periapical)", "Bitewing", "Panoramic (OPG)", "CBCT", "CT Scan", "Occlusal"
+  ]
+
+  const vitalityTestOptions = [
+    'Cold test positive', 'Cold test negative', 'Heat test positive', 'Heat test negative',
+    'Electric pulp test positive', 'Electric pulp test negative', 'No response to EPT',
+    'Delayed response', 'Hyperresponsive', 'Hyporesponsive'
+  ]
+
+  const percussionTestOptions = [
+    'Vertical percussion positive', 'Vertical percussion negative',
+    'Horizontal percussion positive', 'Horizontal percussion negative',
+    'Tender to percussion', 'No tenderness'
+  ]
+
+  const palpationFindingOptions = [
+    'Tender to palpation', 'No tenderness', 'Swelling present', 'No swelling',
+    'Fluctuant swelling', 'Firm swelling', 'Lymph node enlargement', 'Normal palpation'
   ]
 
   return (
@@ -161,19 +197,22 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
           <div>
             <Label>Radiographic Investigations Taken</Label>
             <div className="grid grid-cols-2 gap-3 mt-2">
-              {radiographicTypeOptions.map(type => (
-                <div key={type} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`radio-${type}`}
-                    checked={radiographicTypes.includes(type)}
-                    onCheckedChange={() => handleRadiographicTypeToggle(type)}
-                    disabled={isReadOnly}
-                  />
-                  <Label htmlFor={`radio-${type}`} className="text-sm cursor-pointer">
-                    {type}
-                  </Label>
-                </div>
-              ))}
+              {radiographicTypeOptions.map(type => {
+                const id = `radio-${slug(type)}`
+                return (
+                  <div key={type} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={radiographicTypes.includes(type)}
+                      onCheckedChange={() => handleRadiographicTypeToggle(type)}
+                      disabled={isReadOnly}
+                    />
+                    <Label htmlFor={id} className="text-sm cursor-pointer">
+                      {type}
+                    </Label>
+                  </div>
+                )
+              })}
             </div>
           </div>
 
@@ -191,32 +230,73 @@ export function InvestigationsTab({ data, onChange, isReadOnly = false, onSave }
             />
           </div>
 
-          {/* Vitality Tests */}
+          {/* Vitality Tests - now checkboxes */}
           <div>
-            <Label htmlFor="vitality-tests">Vitality Tests (Pulp Testing)</Label>
-            <Textarea
-              id="vitality-tests"
-              value={vitalityTests}
-              onChange={(e) => handleVitalityTestsChange(e.target.value)}
-              placeholder="Record cold test, heat test, electric pulp test results with tooth numbers and responses"
-              rows={3}
-              disabled={isReadOnly}
-              className="mt-2"
-            />
+            <Label>Vitality Tests (Pulp Testing)</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {vitalityTestOptions.map(test => {
+                const id = `vitality-${slug(test)}`
+                return (
+                  <div key={test} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={vitalityTests.includes(test)}
+                      onCheckedChange={() => toggleVitalityTest(test)}
+                      disabled={isReadOnly}
+                    />
+                    <Label htmlFor={id} className="text-sm cursor-pointer">
+                      {test}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
-          {/* Percussion Tests */}
+          {/* Percussion Tests - now checkboxes */}
           <div>
-            <Label htmlFor="percussion-tests">Percussion & Palpation Tests</Label>
-            <Textarea
-              id="percussion-tests"
-              value={percussionTests}
-              onChange={(e) => handlePercussionTestsChange(e.target.value)}
-              placeholder="Record percussion (vertical/horizontal) and palpation test results"
-              rows={3}
-              disabled={isReadOnly}
-              className="mt-2"
-            />
+            <Label>Percussion Tests</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {percussionTestOptions.map(test => {
+                const id = `percussion-${slug(test)}`
+                return (
+                  <div key={test} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={percussionTests.includes(test)}
+                      onCheckedChange={() => togglePercussionTest(test)}
+                      disabled={isReadOnly}
+                    />
+                    <Label htmlFor={id} className="text-sm cursor-pointer">
+                      {test}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Palpation Findings - now checkboxes */}
+          <div>
+            <Label>Palpation Findings</Label>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              {palpationFindingOptions.map(finding => {
+                const id = `palpation-${slug(finding)}`
+                return (
+                  <div key={finding} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={id}
+                      checked={palpationFindings.includes(finding)}
+                      onCheckedChange={() => togglePalpationFinding(finding)}
+                      disabled={isReadOnly}
+                    />
+                    <Label htmlFor={id} className="text-sm cursor-pointer">
+                      {finding}
+                    </Label>
+                  </div>
+                )
+              })}
+            </div>
           </div>
 
           {/* Laboratory Tests */}

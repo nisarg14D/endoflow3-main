@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Calendar, FileText, User, Edit, Eye, Search, Filter } from "lucide-react"
 import { format } from 'date-fns'
 import { getConsultationsAction, getConsultationByIdAction } from '@/lib/actions/consultation'
+import { InteractiveDentalChart } from "@/components/dentist/interactive-dental-chart"
 
 interface Consultation {
   id: string
@@ -247,20 +248,36 @@ export function ConsultationHistory({
 
         {/* Tooth Diagnoses */}
         {consultation.tooth_diagnoses && consultation.tooth_diagnoses.length > 0 && (
-          <div>
-            <h4 className="font-semibold text-gray-900 mb-2">Tooth Diagnoses</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {consultation.tooth_diagnoses.map((tooth: any) => (
-                <div key={tooth.id} className="border rounded p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">Tooth {tooth.tooth_number}</span>
-                    <Badge variant="outline">{tooth.status}</Badge>
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-semibold text-gray-900 mb-2">Tooth Diagnoses</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {consultation.tooth_diagnoses.map((tooth: any) => (
+                  <div key={tooth.id} className="border rounded p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">Tooth {tooth.tooth_number}</span>
+                      <Badge variant="outline">{tooth.status}</Badge>
+                    </div>
+                    {tooth.primary_diagnosis && <p className="text-sm text-gray-600 mb-1">{tooth.primary_diagnosis}</p>}
+                    {tooth.recommended_treatment && <p className="text-sm text-green-600">{tooth.recommended_treatment}</p>}
                   </div>
-                  {tooth.primary_diagnosis && <p className="text-sm text-gray-600 mb-1">{tooth.primary_diagnosis}</p>}
-                  {tooth.recommended_treatment && <p className="text-sm text-green-600">{tooth.recommended_treatment}</p>}
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {/* Historical Dental Chart Snapshot */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Dental Chart Snapshot (as of this consultation)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InteractiveDentalChart
+                  readOnly={true}
+                  patientId={consultation.patient_id}
+                  consultationId={consultation.id}
+                />
+              </CardContent>
+            </Card>
           </div>
         )}
 

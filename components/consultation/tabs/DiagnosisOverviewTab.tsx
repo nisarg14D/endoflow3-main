@@ -13,6 +13,7 @@ import { Search, Filter, Download, Eye, AlertTriangle, Calendar, FileText } from
 interface DiagnosisRecord {
   toothNumber: string
   diagnoses: string[]
+  treatments: string[]
   priority: 'low' | 'medium' | 'high' | 'urgent'
   diagnosisDate: string
   clinicianName: string
@@ -32,6 +33,7 @@ interface DiagnosisOverviewTabProps {
       diagnosticNotes: string
       priority: string
       currentStatus: string
+      selectedTreatments?: string[]
     }
   }
   consultationData?: {
@@ -39,31 +41,95 @@ interface DiagnosisOverviewTabProps {
     patientName?: string
     consultationDate?: string
   }
+  history?: Array<{
+    toothNumber: string
+    diagnoses: string[]
+    treatments: string[]
+    diagnosisDate: string
+    clinicianName?: string
+    status?: string
+  }>
+  // Optional: show consultation-level diagnosis inputs
+  extraDefaults?: {
+    provisional?: string
+    differential?: string
+    final?: string
+  }
+  onChange?: (data: any) => void
+  isReadOnly?: boolean
+  showHistory?: boolean
 }
 
-export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOverviewTabProps) {
+export function DiagnosisOverviewTab({ data, consultationData, history = [], extraDefaults, onChange, isReadOnly = false, showHistory = true }: DiagnosisOverviewTabProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'tooth' | 'date' | 'priority'>('tooth')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
-  // Transform consultation data into diagnosis records
-  const diagnosisRecords: DiagnosisRecord[] = useMemo(() => {
-    return Object.entries(data)
-      .filter(([toothNumber, toothData]) => toothData.selectedDiagnoses.length > 0)
-      .map(([toothNumber, toothData]) => ({
-        toothNumber,
-        diagnoses: toothData.selectedDiagnoses,
-        priority: toothData.priority as 'low' | 'medium' | 'high' | 'urgent',
-        diagnosisDate: toothData.examinationDate || new Date().toISOString().split('T')[0],
-        clinicianName: consultationData?.clinicianName || 'Dr. Current',
-        diagnosisDetails: toothData.diagnosisDetails || '',
-        symptoms: toothData.symptoms || [],
-        status: toothData.currentStatus === 'healthy' ? 'resolved' : 'active' as 'active' | 'resolved' | 'monitoring' | 'referred',
-        lastUpdated: new Date().toISOString().split('T')[0]
-      }))
+// Transform consultation data into diagnosis records (current session)
+  const currentRecords: DiagnosisRecord[] = useMemo(() => {
+    return Object.entries(data || {})
+      .filter(([_, toothData]: any) => {
+        const selected = (toothData?.selectedDiagnoses ?? toothData?.diagnoses ?? [])
+        if (Array.isArray(selected)) return selected.length > 0
+        if (typeof selected === 'string') return selected.trim().length > 0
+        return false
+      })
+      .map(([toothNumber, toothData]: any) => {
+        // Normalize selected diagnoses array safely
+        let diagnoses: string[] = []
+        const raw = toothData?.selectedDiagnoses ?? toothData?.diagnoses ?? []
+        if (Array.isArray(raw)) diagnoses = raw
+        else if (typeof raw === 'string') diagnoses = raw.split(',').map((s: string) => s.trim()).filter(Boolean)
+
+        const treatments: string[] = Array.isArray(toothData?.selectedTreatments)
+          ? toothData.selectedTreatments
+          : (typeof toothData?.treatments === 'string'
+              ? toothData.treatments.split(',').map((s: string) => s.trim()).filter(Boolean)
+              : (toothData?.treatments || []))
+
+        return ({
+          toothNumber,
+          diagnoses,
+          treatments,
+          priority: (toothData?.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+          diagnosisDate: toothData?.examinationDate || new Date().toISOString().split('T')[0],
+          clinicianName: consultationData?.clinicianName || 'Dr. Current',
+          diagnosisDetails: toothData?.diagnosisDetails || '',
+          symptoms: toothData?.symptoms || [],
+          status: (() => {
+            const cs = (toothData?.currentStatus || 'healthy') as string
+            const resolvedSet = new Set(['filled','crown','root_canal','implant','missing'])
+            if (cs === 'healthy') return 'resolved'
+            if (resolvedSet.has(cs)) return 'resolved'
+            return 'active'
+          })(),
+          lastUpdated: new Date().toISOString().split('T')[0]
+        })
+      })
   }, [data, consultationData])
+
+  // Transform historical records
+  const historicalRecords: DiagnosisRecord[] = useMemo(() => {
+    if (!showHistory) return []
+    return (history || []).map((h) => ({
+      toothNumber: h.toothNumber,
+      diagnoses: h.diagnoses || [],
+      treatments: h.treatments || [],
+      priority: 'medium',
+      diagnosisDate: h.diagnosisDate,
+      clinicianName: h.clinicianName || 'Dr. (past)',
+      diagnosisDetails: '',
+      symptoms: [],
+      status: (h.status && h.status !== 'healthy') ? 'active' : 'resolved',
+      lastUpdated: h.diagnosisDate
+    }))
+  }, [history, showHistory])
+
+  const diagnosisRecords: DiagnosisRecord[] = useMemo(() => {
+    return [...historicalRecords, ...currentRecords]
+  }, [historicalRecords, currentRecords])
 
   // Filter and sort records
   const filteredAndSortedRecords = useMemo(() => {
@@ -123,11 +189,12 @@ export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOvervi
   }
 
   const exportData = () => {
-    const csvContent = [
-      ['Tooth', 'Diagnoses', 'Priority', 'Status', 'Date', 'Symptoms', 'Clinician', 'Notes'],
+const csvContent = [
+      ['Tooth', 'Diagnoses', 'Treatments', 'Priority', 'Status', 'Date', 'Symptoms', 'Clinician', 'Notes'],
       ...filteredAndSortedRecords.map(record => [
         record.toothNumber,
         record.diagnoses.join('; '),
+        (record.treatments || []).join('; '),
         record.priority,
         record.status,
         record.diagnosisDate,
@@ -145,6 +212,7 @@ export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOvervi
     a.click()
     URL.revokeObjectURL(url)
   }
+
 
   return (
     <div className="space-y-6">
@@ -181,6 +249,7 @@ export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOvervi
           </div>
         </CardHeader>
       </Card>
+
 
       {/* Filters and Search */}
       <Card>
@@ -264,6 +333,7 @@ export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOvervi
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Tooth #</TableHead>
                   <TableHead className="font-semibold">Diagnoses</TableHead>
+                  <TableHead className="font-semibold">Treatments</TableHead>
                   <TableHead className="font-semibold">Priority</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Symptoms</TableHead>
@@ -286,6 +356,15 @@ export function DiagnosisOverviewTab({ data, consultationData }: DiagnosisOvervi
                           {record.diagnoses.map((diagnosis, idx) => (
                             <Badge key={idx} variant="secondary" className="text-xs mr-1 mb-1">
                               {diagnosis}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          {(record.treatments || []).map((treat, idx) => (
+                            <Badge key={idx} variant="outline" className="text-xs mr-1 mb-1">
+                              {treat}
                             </Badge>
                           ))}
                         </div>

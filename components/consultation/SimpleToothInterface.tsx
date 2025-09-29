@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ interface SimpleToothInterfaceProps {
   toothNumber: string
   onClose: () => void
   onSave: (data: any) => void
+  existingData?: Partial<ToothData>
 }
 
 interface ToothData {
@@ -33,7 +34,7 @@ interface ToothData {
   followUpRequired: boolean
 }
 
-export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToothInterfaceProps) {
+export function SimpleToothInterface({ toothNumber, onClose, onSave, existingData }: SimpleToothInterfaceProps) {
   // Check if we're dealing with multiple teeth
   const isMultiSelect = toothNumber.includes(',')
   const toothNumbers = isMultiSelect ? toothNumber.split(',') : [toothNumber]
@@ -46,21 +47,36 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
   const [treatmentMode, setTreatmentMode] = useState<'unified' | 'individual'>('unified')
   const [individualToothTreatments, setIndividualToothTreatments] = useState<{[toothNumber: string]: Partial<ToothData>}>({})
   const [toothData, setToothData] = useState<ToothData>({
-    currentStatus: 'healthy',
-    selectedDiagnoses: [],
-    diagnosisDetails: '',
-    examinationDate: new Date().toISOString().split('T')[0],
-    symptoms: [],
-    diagnosticNotes: '',
-    selectedTreatments: [],
-    priority: 'medium',
-    treatmentDetails: '',
-    duration: '60',
-    estimatedCost: '',
-    scheduledDate: '',
-    treatmentNotes: '',
-    followUpRequired: false
+    currentStatus: existingData?.currentStatus || 'healthy',
+    selectedDiagnoses: existingData?.selectedDiagnoses || [],
+    diagnosisDetails: existingData?.diagnosisDetails || '',
+    examinationDate: existingData?.examinationDate || new Date().toISOString().split('T')[0],
+    symptoms: existingData?.symptoms || [],
+    diagnosticNotes: existingData?.diagnosticNotes || '',
+    selectedTreatments: existingData?.selectedTreatments || [],
+    priority: (existingData?.priority as any) || 'medium',
+    treatmentDetails: existingData?.treatmentDetails || '',
+    duration: (existingData?.duration as any) || '60',
+    estimatedCost: (existingData?.estimatedCost as any) || '',
+    scheduledDate: (existingData?.scheduledDate as any) || '',
+    treatmentNotes: existingData?.treatmentNotes || '',
+    followUpRequired: !!existingData?.followUpRequired
   })
+  const originalStatusRef = useRef<string>(toothData.currentStatus)
+
+  // Derive status heuristics from diagnosis/treatment
+  const deriveStatus = (payload: { diagnoses?: string[]; treatments?: string[]; fallback?: string }) => {
+    const diag = (payload.diagnoses || []).join(' ').toLowerCase()
+    const trt = (payload.treatments || []).join(' ').toLowerCase()
+    if (diag.includes('caries') || trt.includes('filling')) return 'caries'
+    if (trt.includes('filling') || diag.includes('filled')) return 'filled'
+    if (trt.includes('crown') || diag.includes('crown')) return 'crown'
+    if (diag.includes('pulp') || trt.includes('root canal')) return 'root_canal'
+    if (diag.includes('extract') || trt.includes('extraction')) return 'extraction_needed'
+    if (trt.includes('implant') || diag.includes('implant')) return 'implant'
+    if (diag.includes('periodontal')) return 'attention'
+    return payload.fallback || 'healthy'
+  }
 
   const commonDiagnoses = [
     'Incipient Caries',
@@ -111,12 +127,13 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
   }
 
   const addDiagnosis = (diagnosis: string) => {
-    setToothData(prev => ({
-      ...prev,
-      selectedDiagnoses: prev.selectedDiagnoses.includes(diagnosis)
+    setToothData(prev => {
+      const selected = prev.selectedDiagnoses.includes(diagnosis)
         ? prev.selectedDiagnoses
         : [...prev.selectedDiagnoses, diagnosis]
-    }))
+      const nextStatus = deriveStatus({ diagnoses: selected, treatments: prev.selectedTreatments, fallback: prev.currentStatus })
+      return { ...prev, selectedDiagnoses: selected, currentStatus: nextStatus }
+    })
   }
 
   const removeDiagnosis = (diagnosis: string) => {
@@ -127,12 +144,13 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
   }
 
   const addTreatment = (treatment: string) => {
-    setToothData(prev => ({
-      ...prev,
-      selectedTreatments: prev.selectedTreatments.includes(treatment)
+    setToothData(prev => {
+      const selected = prev.selectedTreatments.includes(treatment)
         ? prev.selectedTreatments
         : [...prev.selectedTreatments, treatment]
-    }))
+      const nextStatus = deriveStatus({ diagnoses: prev.selectedDiagnoses, treatments: selected, fallback: prev.currentStatus })
+      return { ...prev, selectedTreatments: selected, currentStatus: nextStatus }
+    })
   }
 
   const removeTreatment = (treatment: string) => {
@@ -181,7 +199,12 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
       onSave(multiTeethData)
       console.log(`🦷 Multi-select save: Applied diagnosis and treatment to teeth ${toothNumbers.join(', ')}`)
     } else {
-      onSave(toothData)
+      const payload = { ...toothData }
+      // If status wasn’t changed in the dialog, omit it so we don’t override the previous status
+      if (originalStatusRef.current === toothData.currentStatus) {
+        delete (payload as any).currentStatus
+      }
+      onSave(payload)
     }
     onClose()
   }
@@ -214,9 +237,34 @@ export function SimpleToothInterface({ toothNumber, onClose, onSave }: SimpleToo
               </p>
             </div>
           </div>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
-            {isMultiSelect ? `Save Records for ${toothNumbers.length} Teeth` : 'Save Clinical Record'}
-          </Button>
+
+          {/* Compact Status Selector */}
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-gray-600">Status</Label>
+            <Select
+              value={toothData.currentStatus}
+              onValueChange={(val) => setToothData(prev => ({ ...prev, currentStatus: val }))}
+            >
+              <SelectTrigger className="w-44 h-8 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="healthy">Healthy</SelectItem>
+                <SelectItem value="caries">Caries</SelectItem>
+                <SelectItem value="filled">Filled</SelectItem>
+                <SelectItem value="crown">Crown</SelectItem>
+                <SelectItem value="root_canal">Root Canal</SelectItem>
+                <SelectItem value="extraction_needed">Extraction Needed</SelectItem>
+                <SelectItem value="missing">Missing</SelectItem>
+                <SelectItem value="attention">Needs Attention</SelectItem>
+                <SelectItem value="implant">Implant</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
+              {isMultiSelect ? `Save Records for ${toothNumbers.length} Teeth` : 'Save Clinical Record'}
+            </Button>
+          </div>
         </div>
 
         {/* Multi-select indicator */}

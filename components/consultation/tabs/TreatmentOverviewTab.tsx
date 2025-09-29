@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,7 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Search, Filter, Download, Eye, Calendar, Clock, DollarSign, Wrench, CheckCircle, AlertCircle } from "lucide-react"
+import { Search, Filter, Download, Eye, Calendar, Clock, DollarSign, Wrench, CheckCircle, AlertCircle, RefreshCw, Plus } from "lucide-react"
+import { getPatientTreatmentOverviewAction, getPatientTreatmentStatsAction, type TreatmentWithAppointment } from '@/lib/actions/treatment-overview'
+import { useRouter } from 'next/navigation'
+import { createAppointmentRequestFromConsultationAction } from '@/lib/actions/consultation'
 
 interface TreatmentRecord {
   toothNumber: string
@@ -42,24 +45,39 @@ interface TreatmentOverviewTabProps {
     patientName?: string
     consultationDate?: string
   }
+  // Optional: include historical treatments across consultations
+  history?: Array<{
+    toothNumber: string
+    treatments: string[]
+    diagnosisDate: string
+    clinicianName?: string
+    status?: string
+  }>
+  // Optional: prognosis capture for the consultation
+  extraDefaults?: {
+    prognosis?: string
+  }
+  onChange?: (data: any) => void
+  isReadOnly?: boolean
+  showHistory?: boolean
 }
 
-export function TreatmentOverviewTab({ data, consultationData }: TreatmentOverviewTabProps) {
+export function TreatmentOverviewTab({ data, consultationData, history = [], extraDefaults, onChange, isReadOnly = false, showHistory = true }: TreatmentOverviewTabProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterPriority, setFilterPriority] = useState<string>('all')
   const [sortBy, setSortBy] = useState<'tooth' | 'date' | 'priority' | 'cost'>('tooth')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
-  // Transform consultation data into treatment records
-  const treatmentRecords: TreatmentRecord[] = useMemo(() => {
+// Transform consultation data into treatment records
+  const currentRecords: TreatmentRecord[] = useMemo(() => {
     return Object.entries(data)
-      .filter(([toothNumber, toothData]) => toothData.selectedTreatments.length > 0)
+      .filter(([_, toothData]) => (toothData.selectedTreatments || []).length > 0)
       .map(([toothNumber, toothData]) => ({
         toothNumber,
         treatments: toothData.selectedTreatments,
-        priority: toothData.priority as 'low' | 'medium' | 'high' | 'urgent',
-        status: toothData.scheduledDate ? 'planned' : 'planned' as 'planned' | 'in-progress' | 'completed' | 'cancelled' | 'on-hold',
+        priority: (toothData.priority as 'low' | 'medium' | 'high' | 'urgent') || 'medium',
+        status: toothData.scheduledDate ? 'planned' : 'planned',
         scheduledDate: toothData.scheduledDate || '',
         estimatedCost: toothData.estimatedCost || '0',
         duration: toothData.duration || '60',
@@ -69,6 +87,28 @@ export function TreatmentOverviewTab({ data, consultationData }: TreatmentOvervi
         lastUpdated: new Date().toISOString().split('T')[0]
       }))
   }, [data, consultationData])
+
+  // Historical records derived from history prop
+  const historicalRecords: TreatmentRecord[] = useMemo(() => {
+    if (!showHistory) return []
+    return (history || []).map(h => ({
+      toothNumber: h.toothNumber,
+      treatments: h.treatments || [],
+      priority: 'medium',
+      status: 'completed',
+      scheduledDate: '',
+      estimatedCost: '0',
+      duration: '0',
+      clinicianName: h.clinicianName || 'Dr. (past)',
+      treatmentDetails: '',
+      followUpRequired: false,
+      lastUpdated: h.diagnosisDate
+    }))
+  }, [history, showHistory])
+
+  const treatmentRecords: TreatmentRecord[] = useMemo(() => {
+    return [...historicalRecords, ...currentRecords]
+  }, [historicalRecords, currentRecords])
 
   // Filter and sort records
   const filteredAndSortedRecords = useMemo(() => {
@@ -184,8 +224,27 @@ export function TreatmentOverviewTab({ data, consultationData }: TreatmentOvervi
     URL.revokeObjectURL(url)
   }
 
+  // Prognosis input (optional)
+  const [prognosis, setPrognosis] = useState(extraDefaults?.prognosis || '')
+
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Consultation-level Prognosis (optional)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Input
+            placeholder="e.g., Good/Fair/Poor with rationale"
+            value={prognosis}
+            disabled={isReadOnly}
+            onChange={(e) => {
+              setPrognosis(e.target.value)
+              onChange?.({ prognosis: e.target.value })
+            }}
+          />
+        </CardContent>
+      </Card>
       {/* Header with Summary Stats */}
       <Card>
         <CardHeader>
