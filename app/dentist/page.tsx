@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -35,10 +35,11 @@ import { LivePatientManagement } from "@/components/dentist/live-patient-managem
 import { DentistBookingInterface } from "@/components/dentist/booking-interface"
 import { ClinicalCockpit } from "@/components/dentist/clinical-cockpit"
 import { RealtimeAppointments } from "@/components/dentist/realtime-appointments"
-import { EnhancedNewConsultation } from "@/components/dentist/enhanced-new-consultation"
+import { EnhancedNewConsultationV2 } from "@/components/dentist/enhanced-new-consultation-v2"
 import { NotificationCenter } from "@/components/notifications/notification-center"
 import { ClinicAnalysis } from "@/components/dentist/clinic-analysis"
 import { ResearchProjects } from "@/components/dentist/research-projects"
+import { ResearchProjects as ResearchProjectsV2 } from "@/components/dentist/research-projects-v2"
 import ResearchAiAssistant from "@/components/dentist/research-ai-assistant"
 import { MessagesChatInterface } from "@/components/dentist/messages-chat-interface"
 import SimpleMessagingInterface from "@/components/dentist/simple-messaging-interface"
@@ -47,6 +48,10 @@ import { logout } from "@/lib/actions/auth"
 import { format } from "date-fns"
 import Image from "next/image"
 import { EndoflowLogo } from "@/components/ui/endoflow-logo"
+import { TemplatesDashboard } from "@/components/dentist/templates-dashboard"
+import { AssistantTaskManager } from "@/components/dentist/assistant-task-manager"
+import { DentistPatientsTwoColumn } from "@/components/dentist/patients-two-column"
+import { EnhancedPatientsInterface } from "@/components/dentist/enhanced-patients-interface"
 
 interface DentistData {
   id: string
@@ -71,13 +76,17 @@ const navigationTabs = [
   { id: "cockpit", label: "Clinical Cockpit", icon: Stethoscope },
   { id: "analysis", label: "Clinic Analysis", icon: TrendingUp },
   { id: "research", label: "Research Projects", icon: Search },
+  { id: "research-v2", label: "Research V2 (Advanced)", icon: Search },
   { id: "ai-assistant", label: "AI Research Assistant", icon: Search },
   { id: "messages", label: "Messages & Chat", icon: MessageSquare },
   { id: "templates", label: "Templates", icon: FileText },
   { id: "tasks", label: "Assistant Tasks", icon: CheckCircle },
 ]
 
-export default function DentistDashboard() {
+import { useSearchParams } from 'next/navigation'
+
+function DentistDashboardContent() {
+  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("today")
   const [dentistData, setDentistData] = useState<DentistData | null>(null)
   const [selectedPatient, setSelectedPatient] = useState<any>(null)
@@ -95,6 +104,12 @@ export default function DentistDashboard() {
     loadDentistData()
     loadAppointmentStats()
   }, [])
+
+  // Honor deep links like /dentist?tab=consultation&patientId=...&appointmentId=...
+  useEffect(() => {
+    const tab = searchParams?.get('tab')
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
 
   useEffect(() => {
     if (dentistData?.id) {
@@ -327,10 +342,15 @@ export default function DentistDashboard() {
                     <Phone className="w-4 h-4 mr-2" />
                     Emergency Contact
                   </Button>
-                  <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
+<Button size="sm" className="bg-teal-600 hover:bg-teal-700">
                     <Plus className="w-4 h-4 mr-2" />
                     New Appointment
                   </Button>
+<a href={`/dentist/contextual-appointment?dentistId=${dentistData.id}`} className="ml-2">
+                    <Button size="sm" variant="outline">
+                      Contextual Appointment
+                    </Button>
+                  </a>
                 </div>
               </div>
 
@@ -420,17 +440,25 @@ export default function DentistDashboard() {
 
           {activeTab === "patients" && (
             <div className="p-6">
-              <LivePatientManagement
-                onSelectPatient={(patient) => {
-                  setSelectedPatient(patient)
-                }}
-                selectedPatientId={selectedPatient?.id}
-              />
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Patients</h1>
+                  <p className="text-gray-500">Comprehensive patient management with real-time updates across treatments, diagnoses, and medical history</p>
+                </div>
+                <div>
+                  {/* Enhanced Patients Interface with sub-tabs */}
+                  <EnhancedPatientsInterface />
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === "consultation" && (
-            <EnhancedNewConsultation />
+            <EnhancedNewConsultationV2 
+              selectedPatientId={searchParams?.get('patientId') || undefined}
+              appointmentId={searchParams?.get('appointmentId') || undefined}
+              dentistId={dentistData.id}
+            />
           )}
 
           {activeTab === "organizer" && (
@@ -461,6 +489,10 @@ export default function DentistDashboard() {
             <ResearchProjects />
           )}
 
+          {activeTab === "research-v2" && (
+            <ResearchProjectsV2 />
+          )}
+
           {activeTab === "ai-assistant" && (
             <div>
               <div className="flex items-center justify-between mb-6">
@@ -474,25 +506,7 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "templates" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Templates Manager</h1>
-                  <p className="text-gray-500">Clinical documentation templates</p>
-                </div>
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Template
-                </Button>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Template Library</h3>
-                  <p className="text-gray-600">Clinical template management coming soon...</p>
-                </div>
-              </div>
-            </div>
+            <TemplatesDashboard />
           )}
 
           {activeTab === "messages" && (
@@ -515,28 +529,40 @@ export default function DentistDashboard() {
           )}
 
           {activeTab === "tasks" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900">Assistant Tasks</h1>
-                  <p className="text-gray-500">Task delegation and workflow management</p>
-                </div>
-                <Button size="sm" className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Assign Task
-                </Button>
-              </div>
-              <div className="bg-white rounded-lg border border-gray-200 p-8">
-                <div className="text-center">
-                  <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Task Management</h3>
-                  <p className="text-gray-600">Task delegation and management system coming soon...</p>
-                </div>
-              </div>
-            </div>
+            <AssistantTaskManager />
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+export default function DentistDashboard() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50">
+        <div className="animate-pulse">
+          <div className="bg-white border-b p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-8 h-8 bg-gray-200 rounded-full" />
+                <div className="w-32 h-6 bg-gray-200 rounded" />
+              </div>
+              <div className="w-24 h-8 bg-gray-200 rounded" />
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="w-48 h-8 bg-gray-200 rounded mb-6" />
+            <div className="grid grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-24 bg-gray-200 rounded-lg" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <DentistDashboardContent />
+    </Suspense>
   )
 }

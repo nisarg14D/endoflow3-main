@@ -10,6 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Calendar,
   Clock,
@@ -41,8 +44,14 @@ import {
   getAppointmentsForWeekAction,
   updateAppointmentStatusAction
 } from "@/lib/actions/appointments"
+import { linkAppointmentToTreatmentAction } from "@/lib/actions/treatments"
 import { format, addDays, subDays, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isToday, isFuture } from 'date-fns'
 import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { FollowUpAppointmentForm } from '../appointments/FollowUpAppointmentForm'
+import ContextualAppointmentForm from '../appointments/ContextualAppointmentForm'
+import PatientSearch from '../shared/PatientSearch'
 
 interface Appointment {
   id: string
@@ -53,6 +62,8 @@ interface Appointment {
   appointment_type: string
   status: string
   notes?: string
+  treatment_id?: string
+  consultation_id?: string
   patients?: {
     first_name: string
     last_name: string
@@ -82,6 +93,7 @@ interface AppointmentOrganizerProps {
 }
 
 export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefreshStats }: AppointmentOrganizerProps) {
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [viewMode, setViewMode] = useState<'day' | 'week' | 'month'>('week')
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -99,10 +111,45 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
   const [isRefreshing, setIsRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<'all' | 'first_visit' | 'consultation' | 'follow_up' | 'treatment'>('all')
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null)
   const [showAppointmentDetails, setShowAppointmentDetails] = useState(false)
   const [pendingRequests, setPendingRequests] = useState<any[]>([])
   const [showAllRequests, setShowAllRequests] = useState(false)
+  // Map of appointment_id -> array of { tooth_number, tooth_diagnosis_id }
+  const [teethByAppointment, setTeethByAppointment] = useState<Record<string, { tooth_number: string; tooth_diagnosis_id?: string | null }[]>>({})
+
+  // Link to Treatment (multi-select from consultation)
+  const [showLinkForm, setShowLinkForm] = useState(false)
+  const [isLoadingDiagnoses, setIsLoadingDiagnoses] = useState(false)
+  const [consultationOptions, setConsultationOptions] = useState<{ id: string; label: string }[]>([])
+  const [selectedConsultationFilter, setSelectedConsultationFilter] = useState<string>('')
+  const [diagnosisOptions, setDiagnosisOptions] = useState<{ id: string; label: string; consultationId: string; toothNumber: string }[]>([])
+  const [selectedDiagnosisIds, setSelectedDiagnosisIds] = useState<string[]>([])
+  const [linkToothNumber, setLinkToothNumber] = useState('')
+  const [linkTreatmentType, setLinkTreatmentType] = useState('')
+  const [linkTotalVisits, setLinkTotalVisits] = useState<number>(1)
+  const [linkNotes, setLinkNotes] = useState('')
+  const [isLinking, setIsLinking] = useState(false)
+  const [linkMessage, setLinkMessage] = useState<string | null>(null)
+  
+  // Follow-up form state
+  const [followUpData, setFollowUpData] = useState<{
+    [appointmentId: string]: {
+      followUpPeriod: string
+      presentStatus: string
+      xrayFindings: string
+      nextSteps: string
+    }
+  }>({})
+  const [savingFollowUp, setSavingFollowUp] = useState<string | null>(null)
+  const [showFollowUpDialog, setShowFollowUpDialog] = useState(false)
+  const [followUpAppointment, setFollowUpAppointment] = useState<Appointment | null>(null)
+  
+  // Contextual appointment form state
+  const [showContextualForm, setShowContextualForm] = useState(false)
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('')
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -113,7 +160,7 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
   useEffect(() => {
     filterAppointments()
     calculateStats()
-  }, [appointments, searchTerm, statusFilter])
+  }, [appointments, searchTerm, statusFilter, typeFilter])
 
   useEffect(() => {
     const channel = supabase
@@ -179,6 +226,30 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
           })
         )
         setAppointments(appointmentsWithPatients)
+
+        // Fetch linked teeth for these appointments
+        try {
+          const apptIds = (appointmentsWithPatients || []).map((a: any) => a.id)
+          if (apptIds.length > 0) {
+            const { data: apptTeeth } = await supabase
+              .schema('api')
+              .from('appointment_teeth')
+              .select('appointment_id, tooth_number, tooth_diagnosis_id')
+              .in('appointment_id', apptIds)
+            const map: Record<string, { tooth_number: string; tooth_diagnosis_id?: string | null }[]> = {}
+            for (const row of apptTeeth || []) {
+              const k = (row as any).appointment_id as string
+              if (!map[k]) map[k] = []
+              map[k].push({ tooth_number: String((row as any).tooth_number), tooth_diagnosis_id: (row as any).tooth_diagnosis_id || null })
+            }
+            setTeethByAppointment(map)
+          } else {
+            setTeethByAppointment({})
+          }
+        } catch (e) {
+          // non-fatal
+          console.warn('[Organizer] failed to load appointment_teeth', e)
+        }
       }
     } catch (error) {
       console.error('Error loading appointments:', error)
@@ -235,6 +306,10 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
       filtered = filtered.filter(apt => apt.status === statusFilter)
     }
 
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(apt => (apt.appointment_type || '').toLowerCase() === typeFilter)
+    }
+
     setFilteredAppointments(filtered)
   }
 
@@ -287,6 +362,17 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
     }
   }
 
+  const getTypeBadgeClass = (type: string) => {
+    const t = (type || '').toLowerCase()
+    switch (t) {
+      case 'first_visit': return 'bg-purple-100 text-purple-800 border-purple-200'
+      case 'consultation': return 'bg-indigo-100 text-indigo-800 border-indigo-200'
+      case 'follow_up': return 'bg-amber-100 text-amber-800 border-amber-200'
+      case 'treatment': return 'bg-emerald-100 text-emerald-800 border-emerald-200'
+      default: return 'bg-slate-100 text-slate-800 border-slate-200'
+    }
+  }
+
   const handleStatusUpdate = async (appointmentId: string, newStatus: string, notes?: string) => {
     try {
       const result = await updateAppointmentStatusAction(appointmentId, newStatus, dentistId, notes)
@@ -318,6 +404,16 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
       loadAppointments(),
       loadPendingRequests()
     ])
+  }
+
+  const handleContextualAppointmentComplete = async () => {
+    // Refresh appointments after contextual appointment creation
+    await loadAppointments()
+    await loadPendingRequests()
+    onRefreshStats()
+    // Reset the form state
+    setSelectedPatientId('')
+    setShowContextualForm(false)
   }
 
   const formatViewTitle = () => {
@@ -380,7 +476,9 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                           <div className="font-semibold text-gray-900">
                             {appointment.patients?.first_name} {appointment.patients?.last_name}
                           </div>
-                          <div className="text-sm text-gray-600">{appointment.appointment_type}</div>
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className={`px-2 py-0.5 rounded border ${getTypeBadgeClass(appointment.appointment_type)} text-[11px]`}>{appointment.appointment_type || 'other'}</span>
+                          </div>
                         </div>
                       </div>
                       <Badge className={`${getStatusColor(appointment.status)} flex items-center gap-1`}>
@@ -400,6 +498,17 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                         </span>
                       )}
                     </div>
+                    {/* Teeth badges */}
+                    {Array.isArray(teethByAppointment[appointment.id]) && teethByAppointment[appointment.id].length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-1 text-xs text-gray-700">
+                        <span className="text-gray-500">Teeth:</span>
+                        {teethByAppointment[appointment.id].map((t, i) => (
+                          <Badge key={`${appointment.id}-tooth-${i}`} variant="outline" className="text-[10px]">
+                            {t.tooth_number}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
                     {appointment.notes && (
                       <div className="mt-2 text-sm text-gray-600 bg-white/70 p-2 rounded">
                         {appointment.notes}
@@ -480,11 +589,23 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                       <div className="font-medium text-gray-800 truncate">
                         {appointment.patients?.first_name} {appointment.patients?.last_name}
                       </div>
-                      <div className="text-gray-600 truncate">{appointment.appointment_type}</div>
+                      <div className="truncate">
+                        <Badge className={`${getTypeBadgeClass(appointment.appointment_type)} text-[10px]`}>{appointment.appointment_type || 'other'}</Badge>
+                      </div>
                       <div className="flex items-center gap-1 text-gray-500">
                         <Timer className="w-3 h-3" />
                         <span>{appointment.duration_minutes}m</span>
                       </div>
+                      {Array.isArray(teethByAppointment[appointment.id]) && teethByAppointment[appointment.id].length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-gray-700">
+                          <span className="text-gray-500">Teeth:</span>
+                          {teethByAppointment[appointment.id].map((t, i) => (
+                            <Badge key={`${appointment.id}-wk-${i}`} variant="outline" className="text-[10px]">
+                              {t.tooth_number}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -572,7 +693,10 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                 <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Refresh
               </Button>
-              <Button className="bg-teal-600 hover:bg-teal-700">
+              <Button 
+                className="bg-teal-600 hover:bg-teal-700"
+                onClick={() => setShowContextualForm(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 New Appointment
               </Button>
@@ -609,6 +733,7 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                   />
                 </div>
 
+                {/* Status Filter */}
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-40">
                     <Filter className="w-4 h-4 mr-2" />
@@ -621,6 +746,20 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="no_show">No Show</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {/* Type Filter */}
+                <Select value={typeFilter} onValueChange={(v:any)=>setTypeFilter(v)}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="first_visit">First Visit</SelectItem>
+                    <SelectItem value="consultation">Consultation</SelectItem>
+                    <SelectItem value="follow_up">Follow-up</SelectItem>
+                    <SelectItem value="treatment">Treatment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -663,6 +802,14 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                 </AvatarFallback>
               </Avatar>
             </div>
+          </div>
+
+          {/* Legend */}
+          <div className="flex flex-wrap gap-2 mb-3 text-xs">
+            <Badge className="px-2 py-1 border bg-purple-100 text-purple-800 border-purple-200">First Visit</Badge>
+            <Badge className="px-2 py-1 border bg-indigo-100 text-indigo-800 border-indigo-200">Consultation</Badge>
+            <Badge className="px-2 py-1 border bg-amber-100 text-amber-800 border-amber-200">Follow-up</Badge>
+            <Badge className="px-2 py-1 border bg-emerald-100 text-emerald-800 border-emerald-200">Treatment</Badge>
           </div>
 
           <div className="border rounded-lg p-4 min-h-[600px]">
@@ -837,6 +984,213 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                 </div>
               )}
 
+              {/* Teeth linked to this appointment */}
+              {Array.isArray(teethByAppointment[selectedAppointment.id]) && teethByAppointment[selectedAppointment.id].length > 0 && (
+                <div>
+                  <p className="text-gray-500 text-sm font-medium mb-2">Linked Teeth</p>
+                  <div className="flex flex-wrap gap-2">
+                    {teethByAppointment[selectedAppointment.id].map((t, i) => (
+                      <div key={`${selectedAppointment.id}-d-${i}`} className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-xs">Tooth {t.tooth_number}</Badge>
+                        {t.tooth_diagnosis_id && (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="text-xs p-0 h-auto"
+                            onClick={async () => {
+                              try {
+                                const { data } = await supabase
+                                  .schema('api')
+                                  .from('tooth_diagnoses')
+                                  .select('tooth_number, primary_diagnosis, recommended_treatment, status, consultation_id')
+                                  .eq('id', t.tooth_diagnosis_id)
+                                  .single()
+                                if (data) {
+                                  alert(`Tooth ${data.tooth_number}: ${data.primary_diagnosis || data.status || 'Diagnosis'}\\nRecommended: ${data.recommended_treatment || '—'}`)
+                                }
+                              } catch {}
+                            }}
+                          >
+                            View diagnosis
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Link to Treatment (multi-select) */}
+              <div className="mt-4 p-3 border rounded bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-700">Link to Treatment</div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      const willShow = !showLinkForm
+                      setShowLinkForm(willShow)
+                      setLinkMessage(null)
+                      setSelectedDiagnosisIds([])
+                      setSelectedConsultationFilter('')
+                      setLinkToothNumber('')
+                      setLinkTreatmentType(selectedAppointment.appointment_type || '')
+                      setLinkTotalVisits(1)
+                      setLinkNotes('')
+                      if (willShow) {
+                        try {
+                          setIsLoadingDiagnoses(true)
+                          // Load recent consultations for this patient
+                          const { data: cons } = await supabase
+                            .schema('api')
+                            .from('consultations')
+                            .select('id, consultation_date')
+                            .eq('patient_id', selectedAppointment.patient_id)
+                            .order('consultation_date', { ascending: false })
+                            .limit(12)
+                          const consOpts = (cons || []).map((c:any) => ({ id: c.id, label: new Date(c.consultation_date).toISOString().slice(0,10) }))
+                          setConsultationOptions(consOpts)
+                          const ids = consOpts.map(c => c.id)
+                          if (ids.length === 0) { setDiagnosisOptions([]); return }
+                          // Load diagnoses for these consultations
+                          const { data: teeth } = await supabase
+                            .schema('api')
+                            .from('tooth_diagnoses')
+                            .select('id, consultation_id, tooth_number, primary_diagnosis, recommended_treatment')
+                            .in('consultation_id', ids)
+                          const opts: { id: string; label: string; consultationId: string; toothNumber: string }[] = []
+                          for (const t of (teeth || [])) {
+                            const dStr = consOpts.find(c => c.id === (t as any).consultation_id)?.label || ''
+                            const label = `Tooth ${(t as any).tooth_number}: ${(t as any).primary_diagnosis || (t as any).recommended_treatment || 'Diagnosis'} ${dStr ? `(${dStr})` : ''}`
+                            opts.push({ id: (t as any).id, label, consultationId: (t as any).consultation_id, toothNumber: String((t as any).tooth_number) })
+                          }
+                          setDiagnosisOptions(opts)
+                        } finally {
+                          setIsLoadingDiagnoses(false)
+                        }
+                      }
+                    }}
+                  >
+                    {showLinkForm ? 'Hide' : 'Add Link'}
+                  </Button>
+                </div>
+
+                {showLinkForm && (
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-600">Filter by Consultation</label>
+                      <Select value={selectedConsultationFilter} onValueChange={setSelectedConsultationFilter}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="All consultations" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">All consultations</SelectItem>
+                          {consultationOptions.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <label className="text-xs text-gray-600">Diagnoses / Teeth (select one or many)</label>
+                      {isLoadingDiagnoses ? (
+                        <div className="text-xs text-gray-500 p-2">Loading diagnoses…</div>
+                      ) : diagnosisOptions.length === 0 ? (
+                        <div className="text-xs text-gray-500 p-2">No recent diagnoses found for this patient</div>
+                      ) : (
+                        <div className="max-h-40 overflow-auto border rounded p-2 space-y-1 bg-white">
+                          {diagnosisOptions
+                            .filter(opt => !selectedConsultationFilter || opt.consultationId === selectedConsultationFilter)
+                            .map(opt => (
+                              <label key={opt.id} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={selectedDiagnosisIds.includes(opt.id)}
+                                  onCheckedChange={(v:any) => {
+                                    const checked = Boolean(v)
+                                    setSelectedDiagnosisIds(prev => checked ? [...prev, opt.id] : prev.filter(id => id !== opt.id))
+                                  }}
+                                />
+                                <span>{opt.label}</span>
+                              </label>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs text-gray-600">Tooth Number (optional)</label>
+                      <Input value={linkToothNumber} onChange={(e) => setLinkToothNumber(e.target.value)} placeholder="e.g., 36" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Treatment Type</label>
+                      <Input value={linkTreatmentType} onChange={(e) => setLinkTreatmentType(e.target.value)} placeholder="e.g., Root Canal" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Total Visits</label>
+                      <Input type="number" min={1} value={linkTotalVisits} onChange={(e) => setLinkTotalVisits(parseInt(e.target.value || '1'))} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-600">Notes</label>
+                      <Input value={linkNotes} onChange={(e) => setLinkNotes(e.target.value)} placeholder="Optional" />
+                    </div>
+
+                    <div className="col-span-2">
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        disabled={isLinking || !linkTreatmentType || (selectedDiagnosisIds.length === 0 && !linkToothNumber)}
+                        onClick={async () => {
+                          if (!selectedAppointment) return
+                          setIsLinking(true)
+                          setLinkMessage(null)
+                          try {
+                            // Link for each selected diagnosis
+                            for (const id of selectedDiagnosisIds) {
+                              const opt = diagnosisOptions.find(o => o.id === id)
+                              if (!opt) continue
+                              await linkAppointmentToTreatmentAction({
+                                appointmentId: selectedAppointment.id,
+                                treatmentType: linkTreatmentType,
+                                toothNumber: opt.toothNumber,
+                                toothDiagnosisId: opt.id,
+                                consultationId: opt.consultationId,
+                                totalVisits: linkTotalVisits || 1,
+                                notes: linkNotes || undefined,
+                              })
+                            }
+                            // Fallback: manual tooth number only
+                            if (selectedDiagnosisIds.length === 0 && linkToothNumber) {
+                              await linkAppointmentToTreatmentAction({
+                                appointmentId: selectedAppointment.id,
+                                treatmentType: linkTreatmentType,
+                                toothNumber: linkToothNumber,
+                                consultationId: selectedConsultationFilter || undefined,
+                                totalVisits: linkTotalVisits || 1,
+                                notes: linkNotes || undefined,
+                              })
+                            }
+                            setLinkMessage('Linked successfully')
+                            setShowLinkForm(false)
+                            // Refresh to show linked teeth badges
+                            await loadAppointments()
+                            onRefreshStats()
+                          } catch (e) {
+                            console.error(e)
+                            setLinkMessage('Failed to link treatment')
+                          } finally {
+                            setIsLinking(false)
+                          }
+                        }}
+                      >{isLinking ? 'Linking…' : 'Save Link'}</Button>
+                      {linkMessage && (
+                        <div className="mt-2 text-xs text-gray-600">{linkMessage}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <Separator />
 
               <div className="flex gap-3">
@@ -844,7 +1198,21 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                   <>
                     <Button
                       className="bg-blue-600 hover:bg-blue-700 flex-1"
-                      onClick={() => handleStatusUpdate(selectedAppointment.id, 'in_progress')}
+                      onClick={async () => {
+                        // 1) Mark in progress
+                        await handleStatusUpdate(selectedAppointment.id, 'in_progress')
+                        // 2) Check appointment type and navigate accordingly
+                        const t = (selectedAppointment.appointment_type || '').toLowerCase()
+                        if (t.includes('follow')) {
+                          // For follow-up appointments, show the follow-up form
+                          setFollowUpAppointment(selectedAppointment)
+                          setShowFollowUpDialog(true)
+                        } else if (t.includes('consult')) {
+                          // For consultation appointments, go to Consultation
+                          const pid = selectedAppointment.patient_id
+                          router.push(`/dentist?tab=consultation&patientId=${encodeURIComponent(pid)}&appointmentId=${encodeURIComponent(selectedAppointment.id)}`)
+                        }
+                      }}
                     >
                       <Activity className="w-4 h-4 mr-2" />
                       Start Appointment
@@ -880,8 +1248,251 @@ export function EnhancedAppointmentOrganizer({ dentistId, dentistName, onRefresh
                   </div>
                 )}
               </div>
+
+              {/* Actions based on appointment type */}
+              {(() => {
+                const t = (selectedAppointment.appointment_type || '').toLowerCase()
+                const isFollowUp = t.includes('follow')
+                const isFirstVisit = t.includes('first')
+                
+                // Show consultation button for first visits and in-progress appointments
+                if (isFirstVisit && selectedAppointment.status === 'in_progress') {
+                  return (
+                    <div className="mt-4 p-4 border rounded-lg bg-blue-50 border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-3">First Visit Consultation</h4>
+                      <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                        onClick={() => {
+                          const pid = selectedAppointment.patient_id
+                          router.push(`/dentist?tab=consultation&patientId=${encodeURIComponent(pid)}&appointmentId=${encodeURIComponent(selectedAppointment.id)}`)
+                        }}
+                      >
+                        Open Consultation Form
+                      </Button>
+                    </div>
+                  )
+                }
+                
+                // Show inline follow-up form for completed follow-up appointments
+                if (!isFollowUp || selectedAppointment.status !== 'completed') return null
+                
+                const appointmentId = selectedAppointment.id
+                const linkedTeeth = teethByAppointment[appointmentId] || []
+                const currentData = followUpData[appointmentId] || {
+                  followUpPeriod: '1_week',
+                  presentStatus: 'good',
+                  xrayFindings: '',
+                  nextSteps: ''
+                }
+                
+                const handleFollowUpChange = (field: string, value: string) => {
+                  setFollowUpData(prev => ({
+                    ...prev,
+                    [appointmentId]: {
+                      ...currentData,
+                      [field]: value
+                    }
+                  }))
+                }
+                
+                const handleSaveFollowUp = async () => {
+                  setSavingFollowUp(appointmentId)
+                  try {
+                    // Find any linked teeth for this appointment
+                    const linkedTeeth = teethByAppointment[appointmentId] || []
+                    
+                    // Save follow-up for each linked tooth
+                    for (const tooth of linkedTeeth) {
+                      const { error } = await supabase
+                        .schema('api')
+                        .from('tooth_follow_ups')
+                        .upsert({
+                          appointment_id: appointmentId,
+                          tooth_number: tooth.tooth_number,
+                          follow_up_type: currentData.followUpPeriod,
+                          present_status: currentData.presentStatus,
+                          xray_findings: currentData.xrayFindings,
+                          next_steps: currentData.nextSteps,
+                          follow_up_date: new Date().toISOString(),
+                          created_at: new Date().toISOString(),
+                          updated_at: new Date().toISOString()
+                        }, {
+                          onConflict: 'appointment_id,tooth_number'
+                        })
+                      
+                      if (error) {
+                        console.error('Error saving follow-up:', error)
+                        throw error
+                      }
+                    }
+                    
+                    // Show success message
+                    toast.success("Follow-up details saved successfully")
+                  } catch (error) {
+                    toast.error("Failed to save follow-up details")
+                  } finally {
+                    setSavingFollowUp(null)
+                  }
+                }
+                
+                return (
+                  <div className="mt-4 p-4 border rounded-lg bg-teal-50 border-teal-200">
+                    <h4 className="font-medium text-teal-800 mb-3 flex items-center gap-2">
+                      <Activity className="w-4 h-4" />
+                      Follow-up Details
+                      {linkedTeeth.length > 0 && (
+                        <span className="text-sm font-normal text-teal-600">
+                          (Teeth: {linkedTeeth.map(t => t.tooth_number).join(', ')})
+                        </span>
+                      )}
+                    </h4>
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm">Follow-up Period</Label>
+                          <Select 
+                            value={currentData.followUpPeriod}
+                            onValueChange={(value) => handleFollowUpChange('followUpPeriod', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1_week">1 Week</SelectItem>
+                              <SelectItem value="2_weeks">2 Weeks</SelectItem>
+                              <SelectItem value="1_month">1 Month</SelectItem>
+                              <SelectItem value="3_months">3 Months</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label className="text-sm">Present Status</Label>
+                          <Select 
+                            value={currentData.presentStatus}
+                            onValueChange={(value) => handleFollowUpChange('presentStatus', value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="excellent">Excellent</SelectItem>
+                              <SelectItem value="good">Good</SelectItem>
+                              <SelectItem value="fair">Fair</SelectItem>
+                              <SelectItem value="poor">Poor</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-sm">X-ray Findings</Label>
+                        <Textarea 
+                          value={currentData.xrayFindings}
+                          onChange={(e) => handleFollowUpChange('xrayFindings', e.target.value)}
+                          placeholder="Enter X-ray findings and observations..."
+                          className="min-h-[80px]"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-sm">Next Steps</Label>
+                        <Textarea 
+                          value={currentData.nextSteps}
+                          onChange={(e) => handleFollowUpChange('nextSteps', e.target.value)}
+                          placeholder="Recommended next steps..."
+                          className="min-h-[60px]"
+                        />
+                      </div>
+                      <Button 
+                        className="w-full bg-teal-600 hover:bg-teal-700"
+                        onClick={handleSaveFollowUp}
+                        disabled={savingFollowUp === appointmentId || linkedTeeth.length === 0}
+                      >
+                        {savingFollowUp === appointmentId ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Saving...
+                          </>
+                        ) : linkedTeeth.length === 0 ? (
+                          'Link teeth first to save follow-up'
+                        ) : (
+                          'Save Follow-up Details'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Follow-up Appointment Form Dialog */}
+      <Dialog open={showFollowUpDialog} onOpenChange={setShowFollowUpDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-teal-700 flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              Follow-up Assessment
+            </DialogTitle>
+          </DialogHeader>
+          
+          {followUpAppointment && (
+            <FollowUpAppointmentForm
+              appointmentId={followUpAppointment.id}
+              patientId={followUpAppointment.patient_id}
+              treatmentId={followUpAppointment.treatment_id}
+              consultationId={followUpAppointment.consultation_id}
+              onComplete={() => {
+                setShowFollowUpDialog(false)
+                setFollowUpAppointment(null)
+                loadAppointments()
+                onRefreshStats()
+              }}
+              onCancel={() => {
+                setShowFollowUpDialog(false)
+                setFollowUpAppointment(null)
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Contextual Appointment Form Dialog */}
+      <Dialog open={showContextualForm} onOpenChange={setShowContextualForm}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-teal-600" />
+              Schedule New Appointment
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            {!selectedPatientId ? (
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-900">Search for Patient</h4>
+                <PatientSearch onPatientSelect={(patientId) => setSelectedPatientId(patientId)} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium text-gray-900">Create Contextual Appointment</h4>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setSelectedPatientId('')}
+                  >
+                    Change Patient
+                  </Button>
+                </div>
+                <ContextualAppointmentForm 
+                  patientId={selectedPatientId}
+                  defaultDentistId={dentistId}
+                  onSuccess={handleContextualAppointmentComplete}
+                />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>

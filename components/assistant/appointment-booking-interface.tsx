@@ -36,6 +36,8 @@ import {
   getActivePatientsAction
 } from "@/lib/actions/appointments"
 import { AppointmentAvailability, TimeSlot } from "@/lib/services/appointments"
+import ContextualAppointmentForm from "@/components/appointments/ContextualAppointmentForm"
+import PatientSearch from "@/components/shared/PatientSearch"
 
 interface Patient {
   id: string
@@ -82,6 +84,8 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
   const [isLoadingDentists, setIsLoadingDentists] = useState(true)
   const [isLoadingSlots, setIsLoadingSlots] = useState(false)
   const [showDirectBooking, setShowDirectBooking] = useState(false)
+  const [showContextualBooking, setShowContextualBooking] = useState(false)
+  const [selectedPatientId, setSelectedPatientId] = useState<string>('')
 
   const [directBookingForm, setDirectBookingForm] = useState<DirectBookingForm>({
     patientId: '',
@@ -276,13 +280,61 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
           <h2 className="text-xl font-semibold text-gray-900">Appointment Management</h2>
           <p className="text-gray-600 text-sm">Manage patient appointments and scheduling</p>
         </div>
-        <Dialog open={showDirectBooking} onOpenChange={setShowDirectBooking}>
-          <DialogTrigger asChild>
-            <Button className="bg-teal-600 hover:bg-teal-700">
-              <Plus className="w-4 h-4 mr-2" />
-              Book Appointment
-            </Button>
-          </DialogTrigger>
+        <div className="flex gap-2">
+          <Dialog open={showContextualBooking} onOpenChange={setShowContextualBooking}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="w-4 h-4 mr-2" />
+                Contextual Appointment
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-blue-600" />
+                  Create Contextual Appointment
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {!selectedPatientId ? (
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900">Search for Patient</h4>
+                    <PatientSearch onPatientSelect={(patientId) => setSelectedPatientId(patientId)} />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900">Create Contextual Appointment</h4>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setSelectedPatientId('')}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Change Patient
+                      </Button>
+                    </div>
+                    <ContextualAppointmentForm 
+                      patientId={selectedPatientId}
+                      onSuccess={() => {
+                        setSelectedPatientId('')
+                        setShowContextualBooking(false)
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showDirectBooking} onOpenChange={setShowDirectBooking}>
+            <DialogTrigger asChild>
+              <Button className="bg-teal-600 hover:bg-teal-700" variant="outline">
+                <Plus className="w-4 h-4 mr-2" />
+                Legacy Booking
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -603,6 +655,7 @@ export function AppointmentBookingInterface({ currentAssistantId }: AppointmentB
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </div>
   )
